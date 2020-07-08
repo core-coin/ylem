@@ -315,8 +315,8 @@ std::vector<SimplificationRule<Pattern>> simplificationRuleListPart5(
 		Instruction::COINBASE
 	})
 	{
-		assertThrow(Pattern::WordSize > 160, OptimizerException, "");
-		Word const mask = (Word(1) << 160) - 1;
+		assertThrow(Pattern::WordSize > 168, OptimizerException, "");
+		Word const mask = (Word(1) << 168) - 1;
 		rules.push_back({
 			Builtins::AND(Pattern{instr}, mask),
 			[=]() -> Pattern { return {instr}; },
@@ -633,8 +633,8 @@ std::vector<SimplificationRule<Pattern>> simplificationRuleListPart9(
 	using Builtins = typename Pattern::Builtins;
 	std::vector<SimplificationRule<Pattern>> rules;
 
-	assertThrow(Pattern::WordSize > 160, OptimizerException, "");
-	Word const mask = (Word(1) << 160) - 1;
+	assertThrow(Pattern::WordSize > 168, OptimizerException, "");
+	Word const mask = (Word(1) << 168) - 1;
 	// CREATE
 	rules.push_back({
 		Builtins::AND(Builtins::CREATE(W, X, Y), mask),

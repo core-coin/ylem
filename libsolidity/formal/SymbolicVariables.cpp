@@ -124,7 +124,7 @@ SymbolicAddressVariable::SymbolicAddressVariable(
 	string _uniqueName,
 	EncodingContext& _context
 ):
-	SymbolicIntVariable(TypeProvider::uint(160), TypeProvider::uint(160), move(_uniqueName), _context)
+	SymbolicIntVariable(TypeProvider::uint(168), TypeProvider::uint(168), move(_uniqueName), _context)
 {
 }
 
