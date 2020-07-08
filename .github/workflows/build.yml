@@ -1,0 +1,16 @@
+name: golidity
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Configure
+      run: |
+         sh scripts/install_deps.sh
+         mkdir build && cd build
+         cmake -DBoost_ARCHITECTURE=-x64 ..
+    - name: Build
+      run: cd build && make -j4
+      
