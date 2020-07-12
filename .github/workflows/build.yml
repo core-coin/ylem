@@ -1,4 +1,4 @@
-name: golidity pipeline
+name: golidity
 on: [push, pull_request]
 
 jobs:
@@ -13,6 +13,4 @@ jobs:
          cd build
          cmake -DBOOST_ROOT=$BOOST_ROOT_1_69_0 -DBoost_ARCHITECTURE=-x64 ..
     - name: Build
-      run: |
-         cd build
-	 make -j4
+      run: cd build && make -j4
