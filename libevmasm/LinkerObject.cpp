@@ -40,7 +40,7 @@ void LinkerObject::link(map<string, h160> const& _libraryAddresses)
 	std::map<size_t, std::string> remainingRefs;
 	for (auto const& linkRef: linkReferences)
 		if (h160 const* address = matchLibrary(linkRef.second, _libraryAddresses))
-			copy(address->data(), address->data() + 21, bytecode.begin() + linkRef.first);
+			copy(address->data(), address->data() + 22, bytecode.begin() + linkRef.first);
 		else
 			remainingRefs.insert(linkRef);
 	linkReferences.swap(remainingRefs);
@@ -53,9 +53,9 @@ string LinkerObject::toHex() const
 	{
 		size_t pos = ref.first * 2;
 		string hash = libraryPlaceholder(ref.second);
-		hex[pos] = hex[pos + 1] = hex[pos + 2] = hex[pos + 39] = hex[pos + 40] = hex[pos + 41] = '_';
+		hex[pos] = hex[pos + 1] = hex[pos + 2] = hex[pos + 3] = hex[pos + 39] = hex[pos + 40] = hex[pos + 41] = hex[pos + 42] = '_';
 		for (size_t i = 0; i < 36; ++i)
-			hex[pos + 3 + i] = hash.at(i);
+			hex[pos + 4 + i] = hash.at(i);
 	}
 	return hex;
 }

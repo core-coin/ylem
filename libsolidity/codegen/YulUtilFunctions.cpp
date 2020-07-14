@@ -173,7 +173,7 @@ string YulUtilFunctions::leftAlignFunction(Type const& _type)
 		switch (_type.category())
 		{
 		case Type::Category::Address:
-			templ("body", "aligned := " + leftAlignFunction(IntegerType(168)) + "(value)");
+			templ("body", "aligned := " + leftAlignFunction(IntegerType(176)) + "(value)");
 			break;
 		case Type::Category::Integer:
 		{
@@ -1763,7 +1763,7 @@ string YulUtilFunctions::conversionFunction(Type const& _from, Type const& _to)
 		case Type::Category::Address:
 			body =
 				Whiskers("converted := <convert>(value)")
-					("convert", conversionFunction(IntegerType(168), _to))
+					("convert", conversionFunction(IntegerType(176), _to))
 					.render();
 			break;
 		case Type::Category::Integer:
@@ -1800,7 +1800,7 @@ string YulUtilFunctions::conversionFunction(Type const& _from, Type const& _to)
 			else if (toCategory == Type::Category::Address)
 				body =
 					Whiskers("converted := <convert>(value)")
-						("convert", conversionFunction(_from, IntegerType(168)))
+						("convert", conversionFunction(_from, IntegerType(176)))
 						.render();
 			else
 			{
@@ -1808,7 +1808,7 @@ string YulUtilFunctions::conversionFunction(Type const& _from, Type const& _to)
 					toCategory == Type::Category::Integer ||
 					toCategory == Type::Category::Contract,
 				"");
-				IntegerType const addressType(168);
+				IntegerType const addressType(176);
 				IntegerType const& to =
 					toCategory == Type::Category::Integer ?
 					dynamic_cast<IntegerType const&>(_to) :
@@ -1892,7 +1892,7 @@ string YulUtilFunctions::conversionFunction(Type const& _from, Type const& _to)
 			else if (toCategory == Type::Category::Address)
 				body =
 					Whiskers("converted := <convert>(value)")
-						("convert", conversionFunction(_from, IntegerType(168)))
+						("convert", conversionFunction(_from, IntegerType(176)))
 						.render();
 			else
 			{
@@ -1948,7 +1948,7 @@ string YulUtilFunctions::cleanupFunction(Type const& _type)
 		switch (_type.category())
 		{
 		case Type::Category::Address:
-			templ("body", "cleaned := " + cleanupFunction(IntegerType(168)) + "(value)");
+			templ("body", "cleaned := " + cleanupFunction(IntegerType(176)) + "(value)");
 			break;
 		case Type::Category::Integer:
 		{

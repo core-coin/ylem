@@ -690,7 +690,7 @@ void CompilerUtils::splitExternalFunctionType(bool _leftAligned)
 	{
 		m_context << Instruction::DUP1;
 		rightShiftNumberOnStack(32);
-		m_context << ((u256(1) << 168) - 1) << Instruction::AND << Instruction::SWAP1;
+		m_context << ((u256(1) << 176) - 1) << Instruction::AND << Instruction::SWAP1;
 	}
 	m_context << u256(0xffffffffUL) << Instruction::AND;
 }
@@ -700,7 +700,7 @@ void CompilerUtils::combineExternalFunctionType(bool _leftAligned)
 	// <address> <function_id>
 	m_context << u256(0xffffffffUL) << Instruction::AND << Instruction::SWAP1;
 	if (!_leftAligned)
-		m_context << ((u256(1) << 168) - 1) << Instruction::AND;
+		m_context << ((u256(1) << 176) - 1) << Instruction::AND;
 	leftShiftNumberOnStack(32);
 	m_context << Instruction::OR;
 	if (_leftAligned)
@@ -769,8 +769,8 @@ void CompilerUtils::convertType(
 		}
 		else if (targetTypeCategory == Type::Category::Address)
 		{
-			solAssert(typeOnStack.numBytes() * 8 == 168, "");
-			rightShiftNumberOnStack(256 - 168);
+			solAssert(typeOnStack.numBytes() * 8 == 176, "");
+			rightShiftNumberOnStack(256 - 176);
 		}
 		else
 		{
@@ -825,7 +825,7 @@ void CompilerUtils::convertType(
 					cleanHigherOrderBits(*typeOnStack);
 			}
 			else if (stackTypeCategory == Type::Category::Address)
-				solAssert(targetBytesType.numBytes() * 8 == 168, "");
+				solAssert(targetBytesType.numBytes() * 8 == 176, "");
 			leftShiftNumberOnStack(256 - targetBytesType.numBytes() * 8);
 		}
 		else if (targetTypeCategory == Type::Category::Enum)
@@ -863,7 +863,7 @@ void CompilerUtils::convertType(
 				targetTypeCategory == Type::Category::Address,
 				""
 			);
-			IntegerType addressType(168);
+			IntegerType addressType(176);
 			IntegerType const& targetType = targetTypeCategory == Type::Category::Integer
 				? dynamic_cast<IntegerType const&>(_targetType) : addressType;
 			if (stackTypeCategory == Type::Category::RationalNumber)
