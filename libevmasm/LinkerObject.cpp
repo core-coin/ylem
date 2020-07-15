@@ -53,7 +53,7 @@ string LinkerObject::toHex() const
 	{
 		size_t pos = ref.first * 2;
 		string hash = libraryPlaceholder(ref.second);
-		hex[pos] = hex[pos + 1] = hex[pos + 2] = hex[pos + 3] = hex[pos + 39] = hex[pos + 40] = hex[pos + 41] = hex[pos + 42] = '_';
+		hex[pos] = hex[pos + 1] = hex[pos + 2] = hex[pos + 3] = hex[pos + 40] = hex[pos + 41] = hex[pos + 42] =  hex[pos + 43]  = '_';
 		for (size_t i = 0; i < 36; ++i)
 			hex[pos + 4 + i] = hash.at(i);
 	}
