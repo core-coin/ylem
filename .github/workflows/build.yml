@@ -16,7 +16,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: build
-        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/build') }}
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('CMakeLists.txt') }}
     - name: Build
       run: cd build && make -j4
       
