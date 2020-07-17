@@ -1,16 +1,17 @@
-name: golidity pipeline
+name: golidity
 on: [push, pull_request]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-    - name: Cache
-      uses: actions/cache@v2
-      with:
-        path: build
-        key: ${{ runner.os }}-${{ hashFiles('build') }}
+    - uses: actions/checkout@v2
+    - name: Configure
+      run: |
+         set -x
+         mkdir build
+         cd build
+         cmake -DBOOST_ROOT=$BOOST_ROOT_1_69_0 -DBoost_ARCHITECTURE=-x64 ..
     - name: Build
-      run: mkdir build && cd build && cmake .. && make
+      run: cd build && make -j4
+      
