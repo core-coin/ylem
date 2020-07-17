@@ -20,6 +20,7 @@
  */
 
 #include <libsolutil/Keccak256.h>
+#include "picosha3.h"
 
 #include <cstdint>
 #include <cstdio>
@@ -171,15 +172,11 @@ inline void hash(
 
 }
 
-h256 keccak256(bytesConstRef _input)
+h256 keccak256(const bytesConstRef _input)
 {
-	h256 output;
-	// Parameters used:
-	// The 0x01 is the specific padding for keccak (sha3 uses 0x06) and
-	// the way the round size (or window or whatever it was) is calculated.
-	// 200 - (256 / 4) is the "rate"
-	hash(output.data(), output.size, _input.data(), _input.size(), 200 - (256 / 4), 0x01);
-	return output;
+	auto sha3_256 = picosha3::get_sha3_generator<256>();
+	auto hexstr = sha3_256.get_hex_string(_input);
+	return h256(hexstr);
 }
 
 }
