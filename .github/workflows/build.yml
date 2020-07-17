@@ -12,11 +12,6 @@ jobs:
          mkdir build
          cd build
          cmake -DBOOST_ROOT=$BOOST_ROOT_1_69_0 -DBoost_ARCHITECTURE=-x64 ..
-    - name: Cache
-      uses: actions/cache@v2
-      with:
-        path: build
-        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/build') }}
     - name: Build
       run: cd build && make -j4
       
