@@ -172,7 +172,7 @@ inline void hash(
 
 }
 
-h256 keccak256(const bytesConstRef _input)
+h256 keccak256(bytesConstRef _input)
 {
 	auto sha3_256 = picosha3::get_sha3_generator<256>();
 	auto hexstr = sha3_256.get_hex_string(_input);
