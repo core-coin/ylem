@@ -651,6 +651,10 @@ std::vector<SimplificationRule<Pattern>> evmRuleList(
 	Pattern
 )
 {
+	using Builtins = typename Pattern::Builtins;
+	using Word = typename Pattern::Word;
+	std::vector<SimplificationRule<Pattern>> rules;
+
 	if (_evmVersion.hasSelfBalance())
 		rules.push_back({
 			Builtins::BALANCE(Instruction::ADDRESS),
@@ -697,31 +701,6 @@ std::vector<SimplificationRule<Pattern>> evmRuleList(
 			);
 		}
 	);
->>>>>>> develop
-
-	return rules;
-}
-
-template<class Pattern>
-std::vector<SimplificationRule<Pattern>> evmRuleList(
-	langutil::EVMVersion _evmVersion,
-	Pattern,
-	Pattern,
-	Pattern,
-	Pattern,
-	Pattern,
-	Pattern,
-	Pattern
-)
-{
-	using Builtins = typename Pattern::Builtins;
-	std::vector<SimplificationRule<Pattern>> rules;
-
-	if (_evmVersion.hasSelfBalance())
-		rules.push_back({
-			Builtins::BALANCE(Instruction::ADDRESS),
-			[]() -> Pattern { return Instruction::SELFBALANCE; }, false
-		});
 
 	return rules;
 }
