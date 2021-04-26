@@ -1,12 +1,8 @@
-FROM alpine AS build
-MAINTAINER chriseth <chris@ethereum.org>
-#Official solidity docker image
-
-#Establish working directory as solidity
-WORKDIR /solidity
+FROM alpine:3.13 AS build
+WORKDIR /ylem
 
 # Build dependencies
-ADD /scripts/install_deps.sh /solidity/scripts/install_deps.sh
+ADD /scripts/install_deps.sh /ylem/scripts/install_deps.sh
 RUN ./scripts/install_deps.sh
 
 #Copy working directory on travis to the image
@@ -19,7 +15,7 @@ ARG BUILD_CONCURRENCY="0"
 #Install dependencies, eliminate annoying warnings
 RUN sed -i -E -e 's/include <sys\/poll.h>/include <poll.h>/' /usr/include/boost/asio/detail/socket_types.hpp
 RUN cmake -DCMAKE_BUILD_TYPE=Release -DTESTS=0 -DSOLC_LINK_STATIC=1
-RUN make solc \
+RUN make ylem \
     -j$(awk "BEGIN {                                       \
         if (${BUILD_CONCURRENCY} != 0) {                   \
             print(${BUILD_CONCURRENCY});                   \
@@ -32,8 +28,8 @@ RUN make solc \
             }                                              \
         }                                                  \
     }")
-RUN strip solc/solc
+RUN strip solc/ylem
 
 FROM scratch
-COPY --from=build /solidity/solc/solc /usr/bin/solc
-ENTRYPOINT ["/usr/bin/solc"]
+COPY --from=build /ylem/solc/ylem /usr/bin/ylem
+ENTRYPOINT ["/usr/bin/ylem"]

@@ -1,7 +1,7 @@
 {
-    let u160max := 0xffffffffffffffffffffffffffffffffffffffff
-    let a := create2(0, u160max, 0, 0)
-    let b := and(u160max, create2(0, u160max, 0, 0))
+    let u176max := 0xffffffffffffffffffffffffffffffffffffffff
+    let a := create2(0, u176max, 0, 0)
+    let b := and(u176max, create2(0, u176max, 0, 0))
     mstore(0, eq(a, b))
 }
 // ====

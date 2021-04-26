@@ -97,23 +97,14 @@ case $(uname -s) in
                 echo "Installing solidity dependencies on macOS 11.0 / 11.1 / 11.2 Big Sur."
                 ;;
             *)
-                echo "Unsupported macOS version."
-                echo "We only support Mavericks, Yosemite, El Capitan, Sierra, High Sierra, Mojave, Catalina, and Big Sur."
-                exit 1
+                echo "Installing solidity dependecies on macOS" $(sw_vers -productVersion | awk -F . '{print $1"."$2}')
                 ;;
         esac
 
         # Check for Homebrew install and abort if it is not installed.
         brew -v > /dev/null 2>&1 || { echo >&2 "ERROR - solidity requires a Homebrew install.  See https://brew.sh."; exit 1; }
         brew update
-        brew install boost
-        brew install cmake
-        if [ "$CI" = true ]; then
-            brew upgrade cmake
-        else
-            brew upgrade
-        fi
-
+        brew install boost ccache coreutils
         ;;
 
 #------------------------------------------------------------------------------
@@ -214,17 +205,7 @@ case $(uname -s) in
 
                 # Install "normal packages"
                 sudo apt-get -y update
-                sudo apt-get -y install \
-                    build-essential \
-                    cmake \
-                    g++ \
-                    gcc \
-                    git \
-                    libboost-all-dev \
-                    unzip \
-                    "$install_z3"
-
-
+                sudo apt-get -y install libboost-all-dev ccache "$install_z3"
                 ;;
 
 #------------------------------------------------------------------------------
@@ -330,13 +311,7 @@ case $(uname -s) in
                         ;;
                 esac
 
-                sudo apt-get -y update
-                sudo apt-get -y install \
-                    build-essential \
-                    cmake \
-                    git \
-                    libboost-all-dev \
-                    "$install_z3"
+                sudo apt-get -y install libboost-all-dev ccache "$install_z3"
                 if [ "$CI" = true ]; then
                     # install Z3 from PPA if the distribution does not provide it
                     if ! dpkg -l libz3-dev > /dev/null 2>&1
