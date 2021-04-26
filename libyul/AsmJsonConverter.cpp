@@ -24,6 +24,7 @@
 #include <libyul/AST.h>
 #include <libyul/Exceptions.h>
 #include <libsolutil/CommonData.h>
+#include <limits>
 
 using namespace std;
 

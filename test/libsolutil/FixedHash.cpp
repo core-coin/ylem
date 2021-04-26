@@ -30,7 +30,7 @@ using namespace std;
 namespace solidity::util::test
 {
 
-static_assert(std::is_same<h160, FixedHash<20>>());
+static_assert(std::is_same<h176, FixedHash<22>>());
 static_assert(std::is_same<h256, FixedHash<32>>());
 
 BOOST_AUTO_TEST_SUITE(FixedHashTest)
@@ -54,11 +54,11 @@ BOOST_AUTO_TEST_CASE(default_constructor)
 		8
 	);
 	BOOST_CHECK_EQUAL(
-		FixedHash<20>{}.hex(),
+		FixedHash<22>{}.hex(),
 		"0000000000000000000000000000000000000000"
 	);
 	BOOST_CHECK_EQUAL(
-		FixedHash<20>{}.size,
+		FixedHash<22>{}.size,
 		20
 	);
 	BOOST_CHECK_EQUAL(
@@ -173,7 +173,7 @@ BOOST_AUTO_TEST_CASE(converting_constructor)
 
 BOOST_AUTO_TEST_CASE(arith_constructor)
 {
-	FixedHash<20> a(u160(0x1234));
+	FixedHash<22> a(u176(0x1234));
 	BOOST_CHECK_EQUAL(
 		a.hex(),
 		"0000000000000000000000000000000000001234"
@@ -190,8 +190,8 @@ BOOST_AUTO_TEST_CASE(arith_constructor)
 
 BOOST_AUTO_TEST_CASE(to_arith)
 {
-	FixedHash<20> a{};
-	BOOST_CHECK_EQUAL(u160(a), 0);
+	FixedHash<22> a{};
+	BOOST_CHECK_EQUAL(u176(a), 0);
 
 	FixedHash<32> b("c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470");
 	BOOST_CHECK_EQUAL(u256(b), u256("0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"));

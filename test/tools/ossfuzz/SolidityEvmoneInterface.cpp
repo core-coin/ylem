@@ -132,7 +132,7 @@ evmc::result EvmoneUtility::deployAndExecute(
 
 optional<evmc::result> EvmoneUtility::compileDeployAndExecute(string _fuzzIsabelle)
 {
-	map<string, h160> libraryAddressMap;
+	map<string, h176> libraryAddressMap;
 	// Stage 1: Compile and deploy library if present.
 	if (!m_libraryName.empty())
 	{

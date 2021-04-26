@@ -421,8 +421,8 @@ public:
 
 	bool operator==(Type const& _other) const override;
 
-	unsigned calldataEncodedSize(bool _padded = true) const override { return _padded ? 32 : 160 / 8; }
-	unsigned storageBytes() const override { return 160 / 8; }
+	unsigned calldataEncodedSize(bool _padded = true) const override { return _padded ? 32 : 176 / 8; }
+	unsigned storageBytes() const override { return 176 / 8; }
 	bool leftAligned() const override { return false; }
 	bool isValueType() const override { return true; }
 	bool nameable() const override { return true; }
@@ -935,7 +935,7 @@ public:
 		solAssert(!isSuper(), "");
 		return encodingType()->calldataEncodedSize(_padded);
 	}
-	unsigned storageBytes() const override { solAssert(!isSuper(), ""); return 20; }
+	unsigned storageBytes() const override { solAssert(!isSuper(), ""); return 22; }
 	bool leftAligned() const override { solAssert(!isSuper(), ""); return false; }
 	bool isValueType() const override { return !isSuper(); }
 	bool nameable() const override { return !isSuper(); }
