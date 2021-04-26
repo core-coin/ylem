@@ -1,6 +1,5 @@
-name: golidity
-on: [push, pull_request]
-
+name: ylem pipeline
+on: push
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -11,5 +10,5 @@ jobs:
     - name: Build
       run: |
          mkdir build && cd build
-         cmake -DBoost_ARCHITECTURE=-x64 ..
+         cmake ..
          make -j4
