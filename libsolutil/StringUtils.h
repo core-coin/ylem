@@ -101,7 +101,7 @@ std::string joinHumanReadablePrefixed
 /// Returns decimal representation for smaller numbers; hex for large numbers.
 /// "Special" numbers, powers-of-two and powers-of-two minus 1, are returned in
 /// formulaic form like 0x01 * 2**24 - 1.
-/// @a T will typically by unsigned, u160, u256 or bigint.
+/// @a T will typically by unsigned, u176, u256 or bigint.
 /// @param _value to be formatted
 /// @param _useTruncation if true, internal truncation is also applied,
 /// like  0x5555...{+56 more}...5555

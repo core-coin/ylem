@@ -36,12 +36,12 @@ void LinkerObject::append(LinkerObject const& _other)
 	bytecode += _other.bytecode;
 }
 
-void LinkerObject::link(map<string, h160> const& _libraryAddresses)
+void LinkerObject::link(map<string, h176> const& _libraryAddresses)
 {
 	std::map<size_t, std::string> remainingRefs;
 	for (auto const& linkRef: linkReferences)
-		if (h160 const* address = matchLibrary(linkRef.second, _libraryAddresses))
-			copy(address->data(), address->data() + 20, bytecode.begin() + vector<uint8_t>::difference_type(linkRef.first));
+		if (h176 const* address = matchLibrary(linkRef.second, _libraryAddresses))
+			copy(address->data(), address->data() + 22, bytecode.begin() + vector<uint8_t>::difference_type(linkRef.first));
 		else
 			remainingRefs.insert(linkRef);
 	linkReferences.swap(remainingRefs);
@@ -54,9 +54,9 @@ string LinkerObject::toHex() const
 	{
 		size_t pos = ref.first * 2;
 		string hash = libraryPlaceholder(ref.second);
-		hex[pos] = hex[pos + 1] = hex[pos + 38] = hex[pos + 39] = '_';
+		hex[pos] = hex[pos + 1] = hex[pos + 2] = hex[pos + 3] = hex[pos + 40] = hex[pos + 41] = hex[pos + 42] =  hex[pos + 43]  = '_';
 		for (size_t i = 0; i < 36; ++i)
-			hex[pos + 2 + i] = hash.at(i);
+			hex[pos + 4 + i] = hash.at(i);
 	}
 	return hex;
 }
@@ -66,10 +66,10 @@ string LinkerObject::libraryPlaceholder(string const& _libraryName)
 	return "$" + keccak256(_libraryName).hex().substr(0, 34) + "$";
 }
 
-h160 const*
+h176 const*
 LinkerObject::matchLibrary(
 	string const& _linkRefName,
-	map<string, h160> const& _libraryAddresses
+	map<string, h176> const& _libraryAddresses
 )
 {
 	auto it = _libraryAddresses.find(_linkRefName);
