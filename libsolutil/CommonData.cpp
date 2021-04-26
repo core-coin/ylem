@@ -27,6 +27,7 @@
 #include <libsolutil/FixedHash.h>
 
 #include <boost/algorithm/string.hpp>
+#include "BigInt.hpp"
 
 using namespace std;
 using namespace solidity;
@@ -128,7 +129,7 @@ bool solidity::util::passesAddressChecksum(string const& _str, bool _strict)
 {
 	string s = _str.substr(0, 2) == "0x" ? _str : "0x" + _str;
 
-	if (s.length() != 42)
+	if (s.length() != 46)
 		return false;
 
 	if (!_strict && (
@@ -143,22 +144,33 @@ bool solidity::util::passesAddressChecksum(string const& _str, bool _strict)
 string solidity::util::getChecksummedAddress(string const& _addr)
 {
 	string s = _addr.substr(0, 2) == "0x" ? _addr.substr(2) : _addr;
-	assertThrow(s.length() == 40, InvalidAddress, "");
+	assertThrow(s.length() == 44, InvalidAddress, "");
 	assertThrow(s.find_first_not_of("0123456789abcdefABCDEF") == string::npos, InvalidAddress, "");
 
-	h256 hash = keccak256(boost::algorithm::to_lower_copy(s, std::locale::classic()));
+    string net = s.substr(0, 2);
+    string sum = s.substr(2, 2);
+    string address = s.substr(4) + net + "00";
 
-	string ret = "0x";
-	for (unsigned i = 0; i < 40; ++i)
-	{
-		char addressCharacter = s[i];
-		uint8_t nibble = hash[i / 2u] >> (4u * (1u - (i % 2u))) & 0xf;
-		if (nibble >= 8)
-			ret += static_cast<char>(toupper(addressCharacter));
-		else
-			ret += static_cast<char>(tolower(addressCharacter));
+    string mods;
+	for (size_t i = 0; i < address.size(); ++i) {
+        auto num = toupper(address[i]);
+        if (num > 64 && num < 91) {
+           num -= 55;
+           mods += std::to_string(num);
+        } else {
+           mods += address[i];
+        }
 	}
-	return ret;
+
+    BigInt remainder = BigInt(mods) % BigInt(97);
+    BigInt checksum = BigInt(98) - remainder;
+    std::stringstream ss;
+    ss << "0x" << net;
+    if (checksum < 10) {
+        ss << "0";
+    }
+    ss << checksum << s.substr(4);
+    return ss.str();
 }
 
 bool solidity::util::isValidHex(string const& _string)

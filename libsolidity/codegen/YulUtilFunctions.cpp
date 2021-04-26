@@ -41,12 +41,12 @@ string YulUtilFunctions::combineExternalFunctionIdFunction()
 	return m_functionCollector.createFunction(functionName, [&]() {
 		return Whiskers(R"(
 			function <functionName>(addr, selector) -> combined {
-				combined := <shl64>(or(<shl32>(addr), and(selector, 0xffffffff)))
+				combined := <shl48>(or(<shl32>(addr), and(selector, 0xffffffff)))
 			}
 		)")
 		("functionName", functionName)
 		("shl32", shiftLeftFunction(32))
-		("shl64", shiftLeftFunction(64))
+		("shl48", shiftLeftFunction(48))
 		.render();
 	});
 }
@@ -57,14 +57,14 @@ string YulUtilFunctions::splitExternalFunctionIdFunction()
 	return m_functionCollector.createFunction(functionName, [&]() {
 		return Whiskers(R"(
 			function <functionName>(combined) -> addr, selector {
-				combined := <shr64>(combined)
+				combined := <shr48>(combined)
 				selector := and(combined, 0xffffffff)
 				addr := <shr32>(combined)
 			}
 		)")
 		("functionName", functionName)
 		("shr32", shiftRightFunction(32))
-		("shr64", shiftRightFunction(64))
+		("shr48", shiftRightFunction(48))
 		.render();
 	});
 }
@@ -216,7 +216,7 @@ string YulUtilFunctions::leftAlignFunction(Type const& _type)
 		switch (_type.category())
 		{
 		case Type::Category::Address:
-			templ("body", "aligned := " + leftAlignFunction(IntegerType(160)) + "(value)");
+			templ("body", "aligned := " + leftAlignFunction(IntegerType(176)) + "(value)");
 			break;
 		case Type::Category::Integer:
 		{
@@ -2841,7 +2841,7 @@ string YulUtilFunctions::prepareStoreFunction(Type const& _type)
 				}
 			)");
 			templ("functionName", functionName);
-			templ("prepareBytes", prepareStoreFunction(*TypeProvider::fixedBytes(24)));
+			templ("prepareBytes", prepareStoreFunction(*TypeProvider::fixedBytes(26)));
 			templ("combine", combineExternalFunctionIdFunction());
 			return templ.render();
 		}
@@ -3151,7 +3151,7 @@ string YulUtilFunctions::conversionFunction(Type const& _from, Type const& _to)
 		case Type::Category::Address:
 			body =
 				Whiskers("converted := <convert>(value)")
-					("convert", conversionFunction(IntegerType(160), _to))
+					("convert", conversionFunction(IntegerType(176), _to))
 					.render();
 			break;
 		case Type::Category::Integer:
@@ -3188,7 +3188,7 @@ string YulUtilFunctions::conversionFunction(Type const& _from, Type const& _to)
 			else if (toCategory == Type::Category::Address)
 				body =
 					Whiskers("converted := <convert>(value)")
-						("convert", conversionFunction(_from, IntegerType(160)))
+						("convert", conversionFunction(_from, IntegerType(176)))
 						.render();
 			else
 			{
@@ -3196,7 +3196,7 @@ string YulUtilFunctions::conversionFunction(Type const& _from, Type const& _to)
 					toCategory == Type::Category::Integer ||
 					toCategory == Type::Category::Contract,
 				"");
-				IntegerType const addressType(160);
+				IntegerType const addressType(176);
 				IntegerType const& to =
 					toCategory == Type::Category::Integer ?
 					dynamic_cast<IntegerType const&>(_to) :
@@ -3284,7 +3284,7 @@ string YulUtilFunctions::conversionFunction(Type const& _from, Type const& _to)
 			else if (toCategory == Type::Category::Address)
 				body =
 					Whiskers("converted := <convert>(value)")
-						("convert", conversionFunction(_from, IntegerType(160)))
+						("convert", conversionFunction(_from, IntegerType(176)))
 						.render();
 			else
 			{
@@ -3554,7 +3554,7 @@ string YulUtilFunctions::cleanupFunction(Type const& _type)
 		switch (_type.category())
 		{
 		case Type::Category::Address:
-			templ("body", "cleaned := " + cleanupFunction(IntegerType(160)) + "(value)");
+			templ("body", "cleaned := " + cleanupFunction(IntegerType(176)) + "(value)");
 			break;
 		case Type::Category::Integer:
 		{
@@ -3580,7 +3580,7 @@ string YulUtilFunctions::cleanupFunction(Type const& _type)
 			switch (dynamic_cast<FunctionType const&>(_type).kind())
 			{
 				case FunctionType::Kind::External:
-					templ("body", "cleaned := " + cleanupFunction(FixedBytesType(24)) + "(value)");
+					templ("body", "cleaned := " + cleanupFunction(FixedBytesType(26)) + "(value)");
 					break;
 				case FunctionType::Kind::Internal:
 					templ("body", "cleaned := value");

@@ -26,7 +26,7 @@
 #include <liblangutil/Exceptions.h>
 #include <libsolutil/CommonData.h>
 #include <libsolutil/Common.h>
-#include <solidity/BuildInfo.h>
+#include <ylem/BuildInfo.h>
 #include <string>
 
 using namespace std;
