@@ -6,6 +6,7 @@ contract C {
 		assert(-1 & 127 == 127);
 	}
 }
+// ====
 // SMTEngine: all
 // ----
 // Warning 6328: (43-61): CHC: Assertion violation happens here.\nCounterexample:\n\n\nTransaction trace:\nC.constructor()\nC.f()
