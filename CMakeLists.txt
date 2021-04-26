@@ -5,11 +5,7 @@ list(APPEND CMAKE_MODULE_PATH ${ETH_CMAKE_DIR})
 
 # Set the build type, if none was specified.
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-	if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
-		set(DEFAULT_BUILD_TYPE "RelWithDebInfo")
-	else()
-		set(DEFAULT_BUILD_TYPE "Release")
-	endif()
+	set(DEFAULT_BUILD_TYPE "Release")
 	set(CMAKE_BUILD_TYPE "${DEFAULT_BUILD_TYPE}" CACHE STRING "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel" FORCE)
 	set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "RelWithDebInfo" "MinSizeRel")
 endif()
@@ -21,10 +17,15 @@ include(EthPolicy)
 eth_policy()
 
 # project name and version should be set after cmake_policy CMP0048
-set(PROJECT_VERSION "0.8.4")
+if(NOT DEFINED PROJECT_VERSION)
+	set(PROJECT_VERSION "1.1.1")
+else()
+	set(PROJECT_VERSION)
+endif()
+
 # OSX target needed in order to support std::visit
 set(CMAKE_OSX_DEPLOYMENT_TARGET "10.14")
-project(solidity VERSION ${PROJECT_VERSION} LANGUAGES C CXX)
+project(ylem VERSION ${PROJECT_VERSION} LANGUAGES C CXX)
 
 include(TestBigEndian)
 TEST_BIG_ENDIAN(IS_BIG_ENDIAN)
@@ -98,6 +99,10 @@ endif()
 if (NOT (${Z3_FOUND} OR ${CVC4_FOUND}))
   message("No SMT solver found (or it has been forcefully disabled). Optional SMT checking will not be available.\
   \nPlease install Z3 or CVC4 or remove the option disabling them (USE_Z3, USE_CVC4).")
+endif()
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options(-Wno-aggressive-loop-optimizations)
 endif()
 
 add_subdirectory(libsolutil)

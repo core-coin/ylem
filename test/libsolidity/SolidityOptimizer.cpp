@@ -119,8 +119,8 @@ protected:
 	u256 m_gasUsedNonOptimized;
 	bytes m_nonOptimizedBytecode;
 	bytes m_optimizedBytecode;
-	h160 m_optimizedContract;
-	h160 m_nonOptimizedContract;
+	h176 m_optimizedContract;
+	h176 m_nonOptimizedContract;
 };
 
 BOOST_FIXTURE_TEST_SUITE(SolidityOptimizer, OptimizerTestFramework)

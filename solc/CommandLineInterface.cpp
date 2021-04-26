@@ -23,7 +23,7 @@
  */
 #include <solc/CommandLineInterface.h>
 
-#include "solidity/BuildInfo.h"
+#include "ylem/BuildInfo.h"
 #include "license.h"
 
 #include <libsolidity/interface/FileReader.h>
@@ -717,9 +717,9 @@ bool CommandLineInterface::parseLibraryOption(string const& _input)
 				return false;
 			}
 
-			if (addrString.length() != 40)
+			if (addrString.length() != 44)
 			{
-				serr() << "Invalid length for address for library \"" << libName << "\": " << addrString.length() << " instead of 40 characters." << endl;
+				serr() << "Invalid length for address for library \"" << libName << "\": " << addrString.length() << " instead of 44 characters." << endl;
 				return false;
 			}
 			if (!passesAddressChecksum(addrString, false))
@@ -729,8 +729,8 @@ bool CommandLineInterface::parseLibraryOption(string const& _input)
 				return false;
 			}
 			bytes binAddr = fromHex(addrString);
-			h160 address(binAddr, h160::AlignRight);
-			if (binAddr.size() > 20 || address == h160())
+			h176 address(binAddr, h176::AlignRight);
+			if (binAddr.size() > 22 || address == h176())
 			{
 				serr() << "Invalid address for library \"" << libName << "\": " << addrString << endl;
 				return false;
@@ -799,7 +799,8 @@ void CommandLineInterface::createFile(string const& _fileName, string const& _da
 
 void CommandLineInterface::createJson(string const& _fileName, string const& _json)
 {
-	createFile(boost::filesystem::basename(_fileName) + string(".json"), _json);
+    auto p = boost::filesystem::path(_fileName);
+    createFile(p.stem().string() + string(".json"), _json);
 }
 
 bool CommandLineInterface::parseArguments(int _argc, char** _argv)
@@ -1757,22 +1758,22 @@ bool CommandLineInterface::actOnInput()
 bool CommandLineInterface::link()
 {
 	// Map from how the libraries will be named inside the bytecode to their addresses.
-	map<string, h160> librariesReplacements;
-	int const placeholderSize = 40; // 20 bytes or 40 hex characters
+	map<string, h176> librariesReplacements;
+	int const placeholderSize = 44; // 22 bytes or 44 hex characters
 	for (auto const& library: m_libraries)
 	{
 		string const& name = library.first;
-		// Library placeholders are 40 hex digits (20 bytes) that start and end with '__'.
+		// Library placeholders are 44 hex digits (22 bytes) that start and end with '__'.
 		// This leaves 36 characters for the library identifier. The identifier used to
 		// be just the cropped or '_'-padded library name, but this changed to
 		// the cropped hex representation of the hash of the library name.
 		// We support both ways of linking here.
-		librariesReplacements["__" + evmasm::LinkerObject::libraryPlaceholder(name) + "__"] = library.second;
+		librariesReplacements["____" + evmasm::LinkerObject::libraryPlaceholder(name) + "____"] = library.second;
 
-		string replacement = "__";
+		string replacement = "____";
 		for (size_t i = 0; i < placeholderSize - 4; ++i)
 			replacement.push_back(i < name.size() ? name[i] : '_');
-		replacement += "__";
+		replacement += "____";
 		librariesReplacements[replacement] = library.second;
 	}
 
