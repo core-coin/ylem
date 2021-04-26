@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * Small useful snippets for the optimiser.
  */
@@ -21,7 +22,7 @@
 #pragma once
 
 #include <libsolutil/Common.h>
-#include <libyul/AsmDataForward.h>
+#include <libyul/ASTForward.h>
 
 namespace solidity::yul
 {

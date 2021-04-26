@@ -6,23 +6,23 @@
  *******************************************************/
 
 
-object \"C_10\" {
+object \"C_11\" {
     code {
         mstore(64, 128)
         if callvalue() { revert(0, 0) }
 
-        constructor_C_10()
+        constructor_C_11()
 
-        codecopy(0, dataoffset(\"C_10_deployed\"), datasize(\"C_10_deployed\"))
+        codecopy(0, dataoffset(\"C_11_deployed\"), datasize(\"C_11_deployed\"))
 
-        return(0, datasize(\"C_10_deployed\"))
+        return(0, datasize(\"C_11_deployed\"))
 
-        function constructor_C_10() {
+        function constructor_C_11() {
 
         }
 
     }
-    object \"C_10_deployed\" {
+    object \"C_11_deployed\" {
         code {
             mstore(64, 128)
 
@@ -34,10 +34,11 @@ object \"C_10\" {
                 case 0x26121ff0
                 {
                     // f()
+
                     if callvalue() { revert(0, 0) }
                     abi_decode_tuple_(4, calldatasize())
-                    let ret_0 :=  fun_f_9()
-                    let memPos := allocateMemory(0)
+                    let ret_0 :=  fun_f_10()
+                    let memPos := allocate_unbounded()
                     let memEnd := abi_encode_tuple_t_bytes4__to_t_bytes4__fromStack(memPos , ret_0)
                     return(memPos, sub(memEnd, memPos))
                 }
@@ -63,12 +64,8 @@ object \"C_10\" {
 
             }
 
-            function allocateMemory(size) -> memPtr {
+            function allocate_unbounded() -> memPtr {
                 memPtr := mload(64)
-                let newFreePtr := add(memPtr, size)
-                // protect against overflow
-                if or(gt(newFreePtr, 0xffffffffffffffff), lt(newFreePtr, memPtr)) { revert(0, 0) }
-                mstore(64, newFreePtr)
             }
 
             function cleanup_t_bytes4(value) -> cleaned {
@@ -83,12 +80,12 @@ object \"C_10\" {
                 converted := shift_left_224(cleanup_t_rational_2864434397_by_1(value))
             }
 
-            function fun_f_9() -> vloc__4 {
-                let zero_value_for_type_t_bytes4_1 := zero_value_for_split_t_bytes4()
-                vloc__4 := zero_value_for_type_t_bytes4_1
+            function fun_f_10() -> var__5 {
+                let zero_t_bytes4_1 := zero_value_for_split_t_bytes4()
+                var__5 := zero_t_bytes4_1
 
-                let expr_6 := 0xaabbccdd
-                vloc__4 := convert_t_rational_2864434397_by_1_to_t_bytes4(expr_6)
+                let expr_7 := 0xaabbccdd
+                var__5 := convert_t_rational_2864434397_by_1_to_t_bytes4(expr_7)
                 leave
 
             }

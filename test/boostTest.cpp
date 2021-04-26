@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /** @file boostTest.cpp
  * @author Marko Simovic <markobarko@gmail.com>
  * @date 2014
@@ -38,7 +39,6 @@
 #include <test/InteractiveTests.h>
 #include <test/Common.h>
 #include <test/EVMHost.h>
-#include <test/Common.h>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/predicate.hpp>
@@ -65,12 +65,20 @@ int registerTests(
 	boost::filesystem::path const& _basepath,
 	boost::filesystem::path const& _path,
 	bool _enforceViaYul,
+	vector<string> const& _labels,
 	TestCase::TestCaseCreator _testCaseCreator
 )
 {
 	int numTestsAdded = 0;
 	fs::path fullpath = _basepath / _path;
-	TestCase::Config config{fullpath.string(), solidity::test::CommonOptions::get().evmVersion(), _enforceViaYul};
+	TestCase::Config config{
+		fullpath.string(),
+		solidity::test::CommonOptions::get().evmVersion(),
+		solidity::test::CommonOptions::get().vmPaths,
+		_enforceViaYul,
+		solidity::test::CommonOptions::get().enforceGasTest,
+		solidity::test::CommonOptions::get().enforceGasTestMinValue
+	};
 	if (fs::is_directory(fullpath))
 	{
 		test_suite* sub_suite = BOOST_TEST_SUITE(_path.filename().string());
@@ -83,6 +91,7 @@ int registerTests(
 					*sub_suite,
 					_basepath, _path / entry.path().filename(),
 					_enforceViaYul,
+					_labels,
 					_testCaseCreator
 				);
 		_suite.add(sub_suite);
@@ -95,7 +104,7 @@ int registerTests(
 		static vector<unique_ptr<string const>> filenames;
 
 		filenames.emplace_back(make_unique<string>(_path.string()));
-		_suite.add(make_test_case(
+		auto test_case = make_test_case(
 			[config, _testCaseCreator]
 			{
 				BOOST_REQUIRE_NO_THROW({
@@ -125,7 +134,10 @@ int registerTests(
 			_path.stem().string(),
 			*filenames.back(),
 			0
-		));
+		);
+		for (auto const& _label: _labels)
+			test_case->add_label(_label);
+		_suite.add(test_case);
 		numTestsAdded = 1;
 	}
 	return numTestsAdded;
@@ -143,6 +155,10 @@ void initializeOptions()
 }
 }
 
+// TODO: Prototype -- why isn't this declared in the boost headers?
+// TODO: replace this with a (global) fixture.
+test_suite* init_unit_test_suite( int /*argc*/, char* /*argv*/[] );
+
 test_suite* init_unit_test_suite( int /*argc*/, char* /*argv*/[] )
 {
 	master_test_suite_t& master = framework::master_test_suite();
@@ -150,14 +166,19 @@ test_suite* init_unit_test_suite( int /*argc*/, char* /*argv*/[] )
 
 	initializeOptions();
 
-	bool disableSemantics = !solidity::test::EVMHost::getVM(solidity::test::CommonOptions::get().evmonePath.string());
-	if (disableSemantics)
+	bool disableSemantics = true;
+	try
 	{
-		cout << "Unable to find " << solidity::test::evmoneFilename << ". Please provide the path using -- --evmonepath <path>." << endl;
-		cout << "You can download it at" << endl;
-		cout << solidity::test::evmoneDownloadLink << endl;
-		cout << endl << "--- SKIPPING ALL SEMANTICS TESTS ---" << endl << endl;
+		disableSemantics = !solidity::test::EVMHost::checkVmPaths(solidity::test::CommonOptions::get().vmPaths);
 	}
+	catch (std::runtime_error const& _exception)
+	{
+		cerr << "Error: " << _exception.what() << endl;
+		exit(1);
+	}
+	if (disableSemantics)
+		cout << endl << "--- SKIPPING ALL SEMANTICS TESTS ---" << endl << endl;
+
 	// Include the interactive tests in the automatic tests as well
 	for (auto const& ts: g_interactiveTestsuites)
 	{
@@ -174,6 +195,7 @@ test_suite* init_unit_test_suite( int /*argc*/, char* /*argv*/[] )
 			options.testPath / ts.path,
 			ts.subpath,
 			options.enforceViaYul,
+			ts.labels,
 			ts.testCaseCreator
 		) > 0, std::string("no ") + ts.title + " tests found");
 	}
@@ -193,9 +215,6 @@ test_suite* init_unit_test_suite( int /*argc*/, char* /*argv*/[] )
 		})
 			removeTestSuite(suite);
 	}
-
-	if (solidity::test::CommonOptions::get().disableSMT)
-		removeTestSuite("SMTChecker");
 
 	return nullptr;
 }

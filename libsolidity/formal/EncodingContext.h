@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 
 #pragma once
 
@@ -22,8 +23,7 @@
 
 #include <libsmtutil/SolverInterface.h>
 
-#include <unordered_map>
-#include <set>
+#include <map>
 
 namespace solidity::frontend::smt
 {
@@ -40,6 +40,10 @@ public:
 	/// alive because of state variables and inlined function calls.
 	/// To be used in the beginning of a root function visit.
 	void reset();
+	/// Resets the fresh id for slack variables.
+	void resetUniqueId();
+	/// Returns the current fresh slack id and increments it.
+	unsigned newUniqueId();
 	/// Clears the entire context, erasing everything.
 	/// To be used before a model checking engine starts.
 	void clear();
@@ -62,12 +66,20 @@ public:
 		return m_solver->newVariable(move(_name), move(_sort));
 	}
 
+	struct IdCompare
+	{
+		bool operator()(ASTNode const* lhs, ASTNode const* rhs) const
+		{
+			return lhs->id() < rhs->id();
+		}
+	};
+
 	/// Variables.
 	//@{
 	/// @returns the symbolic representation of a program variable.
 	std::shared_ptr<SymbolicVariable> variable(frontend::VariableDeclaration const& _varDecl);
 	/// @returns all symbolic variables.
-	std::unordered_map<frontend::VariableDeclaration const*, std::shared_ptr<SymbolicVariable>> const& variables() const { return m_variables; }
+	std::map<frontend::VariableDeclaration const*, std::shared_ptr<SymbolicVariable>, IdCompare> const& variables() const { return m_variables; }
 
 	/// Creates a symbolic variable and
 	/// @returns true if a variable's type is not supported and is therefore abstract.
@@ -100,7 +112,7 @@ public:
 	/// @returns the symbolic representation of an AST node expression.
 	std::shared_ptr<SymbolicVariable> expression(frontend::Expression const& _e);
 	/// @returns all symbolic expressions.
-	std::unordered_map<frontend::Expression const*, std::shared_ptr<SymbolicVariable>> const& expressions() const { return m_expressions; }
+	std::map<frontend::Expression const*, std::shared_ptr<SymbolicVariable>, IdCompare> const& expressions() const { return m_expressions; }
 
 	/// Creates the expression (value can be arbitrary).
 	/// @returns true if type is not supported.
@@ -114,7 +126,7 @@ public:
 	/// Global variables and functions.
 	std::shared_ptr<SymbolicVariable> globalSymbol(std::string const& _name);
 	/// @returns all symbolic globals.
-	std::unordered_map<std::string, std::shared_ptr<SymbolicVariable>> const& globalSymbols() const { return m_globalContext; }
+	std::map<std::string, std::shared_ptr<SymbolicVariable>> const& globalSymbols() const { return m_globalContext; }
 
 	/// Defines a new global variable or function
 	/// and @returns true if type was abstracted.
@@ -130,7 +142,7 @@ public:
 	void pushSolver();
 	void popSolver();
 	void addAssertion(smtutil::Expression const& _e);
-	unsigned solverStackHeigh() { return m_assertions.size(); } const
+	size_t solverStackHeigh() { return m_assertions.size(); } const
 	smtutil::SolverInterface* solver()
 	{
 		solAssert(m_solver, "");
@@ -144,14 +156,14 @@ private:
 	/// Symbolic expressions.
 	//{@
 	/// Symbolic variables.
-	std::unordered_map<frontend::VariableDeclaration const*, std::shared_ptr<SymbolicVariable>> m_variables;
+	std::map<frontend::VariableDeclaration const*, std::shared_ptr<SymbolicVariable>, IdCompare> m_variables;
 
 	/// Symbolic expressions.
-	std::unordered_map<frontend::Expression const*, std::shared_ptr<SymbolicVariable>> m_expressions;
+	std::map<frontend::Expression const*, std::shared_ptr<SymbolicVariable>, IdCompare> m_expressions;
 
 	/// Symbolic representation of global symbols including
 	/// variables and functions.
-	std::unordered_map<std::string, std::shared_ptr<smt::SymbolicVariable>> m_globalContext;
+	std::map<std::string, std::shared_ptr<smt::SymbolicVariable>> m_globalContext;
 
 	/// Symbolic representation of the blockchain state.
 	SymbolicState m_state;
@@ -168,6 +180,9 @@ private:
 	/// Whether to conjoin assertions in the assertion stack.
 	bool m_accumulateAssertions = true;
 	//@}
+
+	/// Central source of unique ids.
+	unsigned m_nextUniqueId = 0;
 };
 
 }

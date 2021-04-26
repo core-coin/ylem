@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * @author Christian <c@ethdev.com>
  * @date 2014
@@ -65,12 +66,9 @@ public:
 	bool registerDeclarations(SourceUnit& _sourceUnit, ASTNode const* _currentScope = nullptr);
 	/// Applies the effect of import directives.
 	bool performImports(SourceUnit& _sourceUnit, std::map<std::string, SourceUnit const*> const& _sourceUnits);
-	/// Resolves all names and types referenced from the given AST Node.
-	/// This is usually only called at the contract level, but with a bit of care, it can also
-	/// be called at deeper levels.
-	/// @param _resolveInsideCode if false, does not descend into nodes that contain code.
+	/// Resolves all names and types referenced from the given Source Node.
 	/// @returns false in case of error.
-	bool resolveNamesAndTypes(ASTNode& _node, bool _resolveInsideCode = true);
+	bool resolveNamesAndTypes(SourceUnit& _source);
 	/// Updates the given global declaration (used for "this"). Not to be used with declarations
 	/// that create their own scope.
 	/// @returns false in case of error.
@@ -94,8 +92,8 @@ public:
 	/// @note Returns a null pointer if any component in the path was not unique or not found.
 	Declaration const* pathFromCurrentScope(std::vector<ASTString> const& _path) const;
 
-	/// Generate and store warnings about variables that are named like instructions.
-	void warnVariablesNamedLikeInstructions();
+	/// Generate and store warnings about declarations with the same name.
+	void warnHomonymDeclarations() const;
 
 	/// @returns a list of similar identifiers in the current and enclosing scopes. May return empty string if no suggestions.
 	std::string similarNameSuggestions(ASTString const& _name) const;
@@ -154,7 +152,6 @@ public:
 		Declaration const& _declaration,
 		std::string const* _name,
 		langutil::SourceLocation const* _errorLocation,
-		bool _warnOnShadow,
 		bool _inactive,
 		langutil::ErrorReporter& _errorReporter
 	);
@@ -165,31 +162,15 @@ private:
 	bool visit(ImportDirective& _import) override;
 	bool visit(ContractDefinition& _contract) override;
 	void endVisit(ContractDefinition& _contract) override;
-	bool visit(StructDefinition& _struct) override;
-	void endVisit(StructDefinition& _struct) override;
-	bool visit(EnumDefinition& _enum) override;
-	void endVisit(EnumDefinition& _enum) override;
-	bool visit(EnumValue& _value) override;
-	bool visit(FunctionDefinition& _function) override;
-	void endVisit(FunctionDefinition& _function) override;
-	bool visit(TryCatchClause& _tryCatchClause) override;
-	void endVisit(TryCatchClause& _tryCatchClause) override;
-	bool visit(ModifierDefinition& _modifier) override;
-	void endVisit(ModifierDefinition& _modifier) override;
-	bool visit(FunctionTypeName& _funTypeName) override;
-	void endVisit(FunctionTypeName& _funTypeName) override;
-	bool visit(Block& _block) override;
-	void endVisit(Block& _block) override;
-	bool visit(ForStatement& _forLoop) override;
-	void endVisit(ForStatement& _forLoop) override;
 	void endVisit(VariableDeclarationStatement& _variableDeclarationStatement) override;
-	bool visit(VariableDeclaration& _declaration) override;
-	bool visit(EventDefinition& _event) override;
-	void endVisit(EventDefinition& _event) override;
+
+	bool visitNode(ASTNode& _node) override;
+	void endVisitNode(ASTNode& _node) override;
+
 
 	void enterNewSubScope(ASTNode& _subScope);
 	void closeCurrentScope();
-	void registerDeclaration(Declaration& _declaration, bool _opensScope);
+	void registerDeclaration(Declaration& _declaration);
 
 	static bool isOverloadedFunction(Declaration const& _declaration1, Declaration const& _declaration2);
 

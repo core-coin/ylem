@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * @author Rhett <roadriverrail@gmail.com>
  * @date 2017
@@ -22,13 +23,12 @@
 
 #include <liblangutil/ErrorReporter.h>
 #include <liblangutil/SourceLocation.h>
+#include <cstdlib>
 #include <memory>
 
 using namespace std;
 using namespace solidity;
 using namespace solidity::langutil;
-
-ErrorId solidity::langutil::operator"" _error(unsigned long long _error) { return ErrorId{ _error }; }
 
 ErrorReporter& ErrorReporter::operator=(ErrorReporter const& _errorReporter)
 {
@@ -62,31 +62,20 @@ void ErrorReporter::warning(
 	error(_error, Error::Type::Warning, _location, _secondaryLocation, _description);
 }
 
-void ErrorReporter::error(ErrorId, Error::Type _type, SourceLocation const& _location, string const& _description)
+void ErrorReporter::error(ErrorId _errorId, Error::Type _type, SourceLocation const& _location, string const& _description)
 {
 	if (checkForExcessiveErrors(_type))
 		return;
 
-	auto err = make_shared<Error>(_type);
-	*err <<
-		errinfo_sourceLocation(_location) <<
-		util::errinfo_comment(_description);
-
-	m_errorList.push_back(err);
+	m_errorList.push_back(make_shared<Error>(_errorId, _type, _description, _location));
 }
 
-void ErrorReporter::error(ErrorId, Error::Type _type, SourceLocation const& _location, SecondarySourceLocation const& _secondaryLocation, string const& _description)
+void ErrorReporter::error(ErrorId _errorId, Error::Type _type, SourceLocation const& _location, SecondarySourceLocation const& _secondaryLocation, string const& _description)
 {
 	if (checkForExcessiveErrors(_type))
 		return;
 
-	auto err = make_shared<Error>(_type);
-	*err <<
-		errinfo_sourceLocation(_location) <<
-		errinfo_secondarySourceLocation(_secondaryLocation) <<
-		util::errinfo_comment(_description);
-
-	m_errorList.push_back(err);
+	m_errorList.push_back(make_shared<Error>(_errorId, _type, _description, _location, _secondaryLocation));
 }
 
 bool ErrorReporter::hasExcessiveErrors() const
@@ -101,11 +90,7 @@ bool ErrorReporter::checkForExcessiveErrors(Error::Type _type)
 		m_warningCount++;
 
 		if (m_warningCount == c_maxWarningsAllowed)
-		{
-			auto err = make_shared<Error>(Error::Type::Warning);
-			*err << util::errinfo_comment("There are more than 256 warnings. Ignoring the rest.");
-			m_errorList.push_back(err);
-		}
+			m_errorList.push_back(make_shared<Error>(4591_error, Error::Type::Warning, "There are more than 256 warnings. Ignoring the rest."));
 
 		if (m_warningCount >= c_maxWarningsAllowed)
 			return true;
@@ -116,9 +101,7 @@ bool ErrorReporter::checkForExcessiveErrors(Error::Type _type)
 
 		if (m_errorCount > c_maxErrorsAllowed)
 		{
-			auto err = make_shared<Error>(Error::Type::Warning);
-			*err << util::errinfo_comment("There are more than 256 errors. Aborting.");
-			m_errorList.push_back(err);
+			m_errorList.push_back(make_shared<Error>(4013_error, Error::Type::Warning, "There are more than 256 errors. Aborting."));
 			BOOST_THROW_EXCEPTION(FatalError());
 		}
 	}
@@ -247,16 +230,6 @@ void ErrorReporter::fatalTypeError(ErrorId _error, SourceLocation const& _locati
 		_error,
 		Error::Type::TypeError,
 		_location,
-		_description
-	);
-}
-
-void ErrorReporter::docstringParsingError(ErrorId _error, string const& _description)
-{
-	error(
-		_error,
-		Error::Type::DocstringParsingError,
-		SourceLocation(),
 		_description
 	);
 }

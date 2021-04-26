@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /** @file IsolTestOptions.h
  */
 
@@ -30,6 +31,7 @@ struct IsolTestOptions: CommonOptions
 {
 	bool showHelp = false;
 	bool noColor = false;
+	bool acceptUpdates = false;
 	std::string testFilter = std::string{};
 
 	IsolTestOptions(std::string* _editor);

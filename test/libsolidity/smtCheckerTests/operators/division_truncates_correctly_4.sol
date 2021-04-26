@@ -1,4 +1,3 @@
-pragma experimental SMTChecker;
 contract C {
 	function f(int x, int y) public pure {
 		x = 7;
@@ -6,5 +5,6 @@ contract C {
 		assert(x / y == -3);
 	}
 }
+// ====
+// SMTEngine: all
 // ----
-// Warning: (106-125): Error trying to invoke SMT solver.

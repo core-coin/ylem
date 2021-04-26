@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * @author Christian <c@ethdev.com>
  * @date 2014
@@ -100,6 +101,18 @@ void ContractDefinition::accept(ASTConstVisitor& _visitor) const
 		listAccept(m_baseContracts, _visitor);
 		listAccept(m_subNodes, _visitor);
 	}
+	_visitor.endVisit(*this);
+}
+
+void IdentifierPath::accept(ASTVisitor& _visitor)
+{
+	_visitor.visit(*this);
+	_visitor.endVisit(*this);
+}
+
+void IdentifierPath::accept(ASTConstVisitor& _visitor) const
+{
+	_visitor.visit(*this);
 	_visitor.endVisit(*this);
 }
 
@@ -353,6 +366,28 @@ void EventDefinition::accept(ASTConstVisitor& _visitor) const
 	_visitor.endVisit(*this);
 }
 
+void ErrorDefinition::accept(ASTVisitor& _visitor)
+{
+	if (_visitor.visit(*this))
+	{
+		if (m_documentation)
+			m_documentation->accept(_visitor);
+		m_parameters->accept(_visitor);
+	}
+	_visitor.endVisit(*this);
+}
+
+void ErrorDefinition::accept(ASTConstVisitor& _visitor) const
+{
+	if (_visitor.visit(*this))
+	{
+		if (m_documentation)
+			m_documentation->accept(_visitor);
+		m_parameters->accept(_visitor);
+	}
+	_visitor.endVisit(*this);
+}
+
 void ElementaryTypeName::accept(ASTVisitor& _visitor)
 {
 	_visitor.visit(*this);
@@ -367,13 +402,15 @@ void ElementaryTypeName::accept(ASTConstVisitor& _visitor) const
 
 void UserDefinedTypeName::accept(ASTVisitor& _visitor)
 {
-	_visitor.visit(*this);
+	if (_visitor.visit(*this))
+		this->pathNode().accept(_visitor);
 	_visitor.endVisit(*this);
 }
 
 void UserDefinedTypeName::accept(ASTConstVisitor& _visitor) const
 {
-	_visitor.visit(*this);
+	if (_visitor.visit(*this))
+		this->pathNode().accept(_visitor);
 	_visitor.endVisit(*this);
 }
 
@@ -642,6 +679,20 @@ void Throw::accept(ASTVisitor& _visitor)
 void Throw::accept(ASTConstVisitor& _visitor) const
 {
 	_visitor.visit(*this);
+	_visitor.endVisit(*this);
+}
+
+void RevertStatement::accept(ASTVisitor& _visitor)
+{
+	if (_visitor.visit(*this))
+		m_errorCall->accept(_visitor);
+	_visitor.endVisit(*this);
+}
+
+void RevertStatement::accept(ASTConstVisitor& _visitor) const
+{
+	if (_visitor.visit(*this))
+		m_errorCall->accept(_visitor);
 	_visitor.endVisit(*this);
 }
 

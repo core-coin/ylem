@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * @author Christian <c@ethdev.com>
  * @date 2014
@@ -45,6 +46,7 @@ class GlobalContext: private boost::noncopyable
 public:
 	GlobalContext();
 	void setCurrentContract(ContractDefinition const& _contract);
+	void resetCurrentContract() { m_currentContract = nullptr; }
 	MagicVariableDeclaration const* currentThis() const;
 	MagicVariableDeclaration const* currentSuper() const;
 

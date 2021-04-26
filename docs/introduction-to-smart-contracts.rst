@@ -18,7 +18,7 @@ Storage Example
 ::
 
     // SPDX-License-Identifier: GPL-3.0
-    pragma solidity >=0.4.16 <0.7.0;
+    pragma solidity >=0.4.16 <0.9.0;
 
     contract SimpleStorage {
         uint storedData;
@@ -37,7 +37,7 @@ GPL version 3.0. Machine-readable license specifiers are important
 in a setting where publishing the source code is the default.
 
 The next line specifies that the source code is written for
-Solidity version 0.4.16, or a newer version of the language up to, but not including version 0.7.0.
+Solidity version 0.4.16, or a newer version of the language up to, but not including version 0.9.0.
 This is to ensure that the contract is not compilable with a new (breaking) compiler version, where it could behave differently.
 :ref:`Pragmas<pragma>` are common instructions for compilers about how to treat the
 source code (e.g. `pragma once <https://en.wikipedia.org/wiki/Pragma_once>`_).
@@ -83,7 +83,7 @@ registering with a username and password, all you need is an Ethereum keypair.
 ::
 
     // SPDX-License-Identifier: GPL-3.0
-    pragma solidity >=0.5.0 <0.7.0;
+    pragma solidity ^0.8.4;
 
     contract Coin {
         // The keyword "public" makes variables
@@ -97,7 +97,7 @@ registering with a username and password, all you need is an Ethereum keypair.
 
         // Constructor code is only run when the contract
         // is created
-        constructor() public {
+        constructor() {
             minter = msg.sender;
         }
 
@@ -109,10 +109,20 @@ registering with a username and password, all you need is an Ethereum keypair.
             balances[receiver] += amount;
         }
 
+        // Errors allow you to provide information about
+        // why an operation failed. They are returned
+        // to the caller of the function.
+        error InsufficientBalance(uint requested, uint available);
+
         // Sends an amount of existing coins
         // from any caller to an address
         function send(address receiver, uint amount) public {
-            require(amount <= balances[msg.sender], "Insufficient balance.");
+            if (amount > balances[msg.sender])
+                revert InsufficientBalance({
+                    requested: amount,
+                    available: balances[msg.sender]
+                });
+
             balances[msg.sender] -= amount;
             balances[receiver] += amount;
             emit Sent(msg.sender, receiver, amount);
@@ -186,7 +196,7 @@ and any user interface calls the automatically generated ``balances`` function f
 
 .. index:: coin
 
-The :ref:`constructor<constructor>` is a special function run during the creation of the contract and
+The :ref:`constructor<constructor>` is a special function that is executed during the creation of the contract and
 cannot be called afterwards. In this case, it permanently stores the address of the person creating the
 contract. The ``msg`` variable (together with ``tx`` and ``block``) is a
 :ref:`special global variable <special-variables-functions>` that
@@ -199,6 +209,14 @@ The ``mint`` function sends an amount of newly created coins to another address.
 The :ref:`require <assert-and-require>` function call defines conditions that reverts all changes if not met.
 In this example, ``require(msg.sender == minter);`` ensures that only the creator of the contract can call ``mint``,
 and ``require(amount < 1e60);`` ensures a maximum amount of tokens. This ensures that there are no overflow errors in the future.
+
+:ref:`Errors <errors>` allow you to provide more information to the caller about
+why a condition or operation failed. Errors are used together with the
+:ref:`revert statement <revert-statement>`. The revert statement unconditionally
+aborts and reverts all changes similar to the ``require`` function, but it also
+allows you to provide the name of an error and additional data which will be supplied to the caller
+(and eventually to the front-end application or block explorer) so that
+a failure can more easily be debugged or reacted upon.
 
 The ``send`` function can be used by anyone (who already
 has some of these coins) to send coins to anyone else. If the sender does not have
@@ -285,7 +303,7 @@ likely it will be.
     since it is not up to the submitter of a transaction, but up to the miners to determine in which block the transaction is included.
 
     If you want to schedule future calls of your contract, you can use
-    the `alarm clock <http://www.ethereum-alarm-clock.com/>`_ or a similar oracle service.
+    the `alarm clock <https://www.ethereum-alarm-clock.com/>`_ or a similar oracle service.
 
 .. _the-ethereum-virtual-machine:
 

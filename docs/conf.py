@@ -39,7 +39,9 @@ def setup(sphinx):
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = []
+extensions = [ 'sphinx_a4doc' ]
+
+a4_base_path = os.path.dirname(__file__) + '/grammar'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -55,7 +57,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Solidity'
-copyright = '2016-2020, Ethereum'
+copyright = '2016-2021, Ethereum'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -83,7 +85,7 @@ else:
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['_build', 'contracts', 'types', 'examples']
+exclude_patterns = ['_build', 'contracts', 'types', 'examples', 'grammar', 'ir']
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
@@ -154,7 +156,7 @@ html_js_files = ["js/toggle.js"]
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
 # directly to the root of the documentation.
-html_extra_path = ["_static/css"]
+html_extra_path = ["_static/css", "_static/robots.txt"]
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.

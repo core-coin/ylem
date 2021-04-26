@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /** @file Instruction.cpp
  * @author Gav Wood <i@gavwood.com>
  * @date 2014
@@ -330,8 +331,8 @@ void solidity::evmasm::eachInstruction(
 {
 	for (auto it = _mem.begin(); it < _mem.end(); ++it)
 	{
-		Instruction instr = Instruction(*it);
-		size_t additional = 0;
+		auto instr = Instruction(*it);
+		int additional = 0;
 		if (isValidInstruction(instr))
 			additional = instructionInfo(instr).additional;
 
@@ -352,18 +353,19 @@ void solidity::evmasm::eachInstruction(
 	}
 }
 
-string solidity::evmasm::disassemble(bytes const& _mem)
+string solidity::evmasm::disassemble(bytes const& _mem, string const& _delimiter)
 {
 	stringstream ret;
 	eachInstruction(_mem, [&](Instruction _instr, u256 const& _data) {
 		if (!isValidInstruction(_instr))
-			ret << "0x" << std::uppercase << std::hex << int(_instr) << " ";
+			ret << "0x" << std::uppercase << std::hex << static_cast<int>(_instr) << _delimiter;
 		else
 		{
 			InstructionInfo info = instructionInfo(_instr);
-			ret << info.name << " ";
+			ret << info.name;
 			if (info.additional)
-				ret << "0x" << std::uppercase << std::hex << _data << " ";
+				ret << " 0x" << std::uppercase << std::hex << _data;
+			ret << _delimiter;
 		}
 	});
 	return ret.str();

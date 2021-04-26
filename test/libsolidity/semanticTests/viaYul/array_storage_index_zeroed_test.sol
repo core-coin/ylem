@@ -20,7 +20,7 @@ contract C {
             for (uint i = 3; i < len; i++)
             {
                 assembly {
-                    mstore(0, storageArray_slot)
+                    mstore(0, storageArray.slot)
                     let pos := add(keccak256(0, 0x20), i)
 
                     if iszero(eq(sload(pos), 0)) {
@@ -50,10 +50,22 @@ contract C {
     }
 }
 // ====
-// compileViaYul: true
+// compileViaYul: also
 // ----
 // test_zeroed_indicies(uint256): 1 ->
 // test_zeroed_indicies(uint256): 5 ->
+// gas irOptimized: 208617
+// gas legacy: 191267
+// gas legacyOptimized: 188486
 // test_zeroed_indicies(uint256): 10 ->
+// gas irOptimized: 304639
+// gas legacy: 276129
+// gas legacyOptimized: 271024
 // test_zeroed_indicies(uint256): 15 ->
+// gas irOptimized: 377949
+// gas legacy: 339254
+// gas legacyOptimized: 331904
 // test_zeroed_indicies(uint256): 0xFF ->
+// gas irOptimized: 9234149
+// gas legacy: 8477449
+// gas legacyOptimized: 8343774

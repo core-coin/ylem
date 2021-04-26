@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 
 /**
  * Z3 specific Horn solver interface.
@@ -24,13 +25,16 @@
 #include <libsmtutil/CHCSolverInterface.h>
 #include <libsmtutil/Z3Interface.h>
 
+#include <tuple>
+#include <vector>
+
 namespace solidity::smtutil
 {
 
 class Z3CHCInterface: public CHCSolverInterface
 {
 public:
-	Z3CHCInterface();
+	Z3CHCInterface(std::optional<unsigned> _queryTimeout = {});
 
 	/// Forwards variable declaration to Z3Interface.
 	void declareVariable(std::string const& _name, SortPointer const& _sort) override;
@@ -39,17 +43,30 @@ public:
 
 	void addRule(Expression const& _expr, std::string const& _name) override;
 
-	std::pair<CheckResult, std::vector<std::string>> query(Expression const& _expr) override;
+	std::pair<CheckResult, CexGraph> query(Expression const& _expr) override;
 
 	Z3Interface* z3Interface() const { return m_z3Interface.get(); }
 
+	void setSpacerOptions(bool _preProcessing = true);
+
 private:
+	/// Constructs a nonlinear counterexample graph from the refutation.
+	CHCSolverInterface::CexGraph cexGraph(z3::expr const& _proof);
+	/// @returns the fact from a proof node.
+	z3::expr fact(z3::expr const& _node);
+	/// @returns @a _predicate's name.
+	std::string name(z3::expr const& _predicate);
+	/// @returns the arguments of @a _predicate.
+	std::vector<std::string> arguments(z3::expr const& _predicate);
+
 	// Used to handle variables.
 	std::unique_ptr<Z3Interface> m_z3Interface;
 
 	z3::context* m_context;
 	// Horn solver.
 	z3::fixedpoint m_solver;
+
+	std::tuple<unsigned, unsigned, unsigned, unsigned> m_version = std::tuple(0, 0, 0, 0);
 };
 
 }

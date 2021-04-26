@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /** @file CommonIO.cpp
  * @author Gav Wood <i@gavwood.com>
  * @date 2014
@@ -46,8 +47,7 @@ inline T readFile(std::string const& _file)
 	T ret;
 	size_t const c_elementSize = sizeof(typename T::value_type);
 	std::ifstream is(_file, std::ifstream::binary);
-	if (!is)
-		return ret;
+	assertThrow(is, FileNotFound, _file);
 
 	// get length of file:
 	is.seekg(0, is.end);
@@ -56,8 +56,8 @@ inline T readFile(std::string const& _file)
 		return ret; // do not read empty file (MSVC does not like it)
 	is.seekg(0, is.beg);
 
-	ret.resize((length + c_elementSize - 1) / c_elementSize);
-	is.read(const_cast<char*>(reinterpret_cast<char const*>(ret.data())), length);
+	ret.resize((static_cast<size_t>(length) + c_elementSize - 1) / c_elementSize);
+	is.read(const_cast<char*>(reinterpret_cast<char const*>(ret.data())), static_cast<streamsize>(length));
 	return ret;
 }
 
@@ -107,8 +107,8 @@ public:
 	DisableConsoleBuffering()
 	{
 		tcgetattr(0, &m_termios);
-		m_termios.c_lflag &= ~ICANON;
-		m_termios.c_lflag &= ~ECHO;
+		m_termios.c_lflag &= ~tcflag_t(ICANON);
+		m_termios.c_lflag &= ~tcflag_t(ECHO);
 		m_termios.c_cc[VMIN] = 1;
 		m_termios.c_cc[VTIME] = 0;
 		tcsetattr(0, TCSANOW, &m_termios);
@@ -137,7 +137,11 @@ string solidity::util::absolutePath(string const& _path, string const& _referenc
 	if (p.begin() == p.end() || (*p.begin() != "." && *p.begin() != ".."))
 		return _path;
 	boost::filesystem::path result(_reference);
-	result.remove_filename();
+
+	// If filename is "/", then remove_filename() throws.
+	// See: https://github.com/boostorg/filesystem/issues/176
+	if (result.filename() != boost::filesystem::path("/"))
+		result.remove_filename();
 	for (boost::filesystem::path::iterator it = p.begin(); it != p.end(); ++it)
 		if (*it == "..")
 			result = result.parent_path();

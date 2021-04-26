@@ -8,7 +8,6 @@
     ]
   },
   "id": 18,
-  "license": null,
   "nodeType": "SourceUnit",
   "nodes":
   [
@@ -17,7 +16,6 @@
       "baseContracts": [],
       "contractDependencies": [],
       "contractKind": "contract",
-      "documentation": null,
       "fullyImplemented": true,
       "id": 17,
       "linearizedBaseContracts":
@@ -25,6 +23,7 @@
         17
       ],
       "name": "C",
+      "nameLocation": "9:1:1",
       "nodeType": "ContractDefinition",
       "nodes":
       [
@@ -36,15 +35,14 @@
             "src": "120:2:1",
             "statements": []
           },
-          "documentation": null,
           "functionSelector": "d6cd4974",
           "id": 16,
           "implemented": true,
           "kind": "function",
           "modifiers": [],
           "name": "f",
+          "nameLocation": "22:1:1",
           "nodeType": "FunctionDefinition",
-          "overrides": null,
           "parameters":
           {
             "id": 7,
@@ -56,8 +54,8 @@
                 "id": 6,
                 "mutability": "mutable",
                 "name": "x",
+                "nameLocation": "67:1:1",
                 "nodeType": "VariableDeclaration",
-                "overrides": null,
                 "scope": 16,
                 "src": "24:44:1",
                 "stateVariable": false,
@@ -89,8 +87,8 @@
                         "id": 3,
                         "mutability": "mutable",
                         "name": "",
+                        "nameLocation": "-1:-1:-1",
                         "nodeType": "VariableDeclaration",
-                        "overrides": null,
                         "scope": 5,
                         "src": "61:4:1",
                         "stateVariable": false,
@@ -112,7 +110,6 @@
                             "typeString": "uint256"
                           }
                         },
-                        "value": null,
                         "visibility": "internal"
                       }
                     ],
@@ -127,7 +124,6 @@
                   },
                   "visibility": "external"
                 },
-                "value": null,
                 "visibility": "internal"
               }
             ],
@@ -144,8 +140,8 @@
                 "id": 13,
                 "mutability": "mutable",
                 "name": "",
+                "nameLocation": "-1:-1:-1",
                 "nodeType": "VariableDeclaration",
-                "overrides": null,
                 "scope": 16,
                 "src": "79:40:1",
                 "stateVariable": false,
@@ -177,8 +173,8 @@
                         "id": 10,
                         "mutability": "mutable",
                         "name": "",
+                        "nameLocation": "-1:-1:-1",
                         "nodeType": "VariableDeclaration",
-                        "overrides": null,
                         "scope": 12,
                         "src": "113:4:1",
                         "stateVariable": false,
@@ -200,7 +196,6 @@
                             "typeString": "uint256"
                           }
                         },
-                        "value": null,
                         "visibility": "internal"
                       }
                     ],
@@ -215,7 +210,6 @@
                   },
                   "visibility": "external"
                 },
-                "value": null,
                 "visibility": "internal"
               }
             ],
@@ -229,7 +223,8 @@
         }
       ],
       "scope": 18,
-      "src": "0:124:1"
+      "src": "0:124:1",
+      "usedErrors": []
     }
   ],
   "src": "0:125:1"

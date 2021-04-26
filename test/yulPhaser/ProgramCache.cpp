@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 
 #include <tools/yulPhaser/ProgramCache.h>
 #include <tools/yulPhaser/Chromosome.h>
@@ -52,7 +53,7 @@ protected:
 	Program optimisedProgram(Program _program, string _abbreviatedOptimisationSteps) const
 	{
 		Program result = move(_program);
-		result.optimise(Chromosome(_abbreviatedOptimisationSteps).optimisationSteps());
+		result.optimise(Chromosome::genesToSteps(_abbreviatedOptimisationSteps));
 		return result;
 	}
 
@@ -70,7 +71,7 @@ protected:
 	ProgramCache m_programCache{m_program};
 };
 
-BOOST_AUTO_TEST_SUITE(Phaser)
+BOOST_AUTO_TEST_SUITE(Phaser, *boost::unit_test::label("nooptions"))
 BOOST_AUTO_TEST_SUITE(ProgramCacheTest)
 
 BOOST_AUTO_TEST_CASE(CacheStats_operator_plus_should_add_stats_together)

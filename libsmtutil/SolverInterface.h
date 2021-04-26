@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 
 #pragma once
 
@@ -26,6 +27,7 @@
 #include <cstdio>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -59,10 +61,12 @@ class Expression
 public:
 	explicit Expression(bool _v): Expression(_v ? "true" : "false", Kind::Bool) {}
 	explicit Expression(std::shared_ptr<SortSort> _sort, std::string _name = ""): Expression(std::move(_name), {}, _sort) {}
-	Expression(size_t _number): Expression(std::to_string(_number), Kind::Int) {}
-	Expression(u256 const& _number): Expression(_number.str(), Kind::Int) {}
-	Expression(s256 const& _number): Expression(_number.str(), Kind::Int) {}
-	Expression(bigint const& _number): Expression(_number.str(), Kind::Int) {}
+	explicit Expression(std::string _name, std::vector<Expression> _arguments, SortPointer _sort):
+		name(std::move(_name)), arguments(std::move(_arguments)), sort(std::move(_sort)) {}
+	Expression(size_t _number): Expression(std::to_string(_number), {}, SortProvider::sintSort) {}
+	Expression(u256 const& _number): Expression(_number.str(), {}, SortProvider::sintSort) {}
+	Expression(s256 const& _number): Expression(_number.str(), {}, SortProvider::sintSort) {}
+	Expression(bigint const& _number): Expression(_number.str(), {}, SortProvider::sintSort) {}
 
 	Expression(Expression const&) = default;
 	Expression(Expression&&) = default;
@@ -94,7 +98,13 @@ public:
 			{"*", 2},
 			{"/", 2},
 			{"mod", 2},
+			{"bvnot", 1},
 			{"bvand", 2},
+			{"bvor", 2},
+			{"bvxor", 2},
+			{"bvshl", 2},
+			{"bvlshr", 2},
+			{"bvashr", 2},
 			{"int2bv", 2},
 			{"bv2int", 1},
 			{"select", 2},
@@ -226,18 +236,31 @@ public:
 
 	friend Expression operator!(Expression _a)
 	{
+		if (_a.sort->kind == Kind::BitVector)
+			return ~_a;
 		return Expression("not", std::move(_a), Kind::Bool);
 	}
 	friend Expression operator&&(Expression _a, Expression _b)
 	{
+		if (_a.sort->kind == Kind::BitVector)
+		{
+			smtAssert(_b.sort->kind == Kind::BitVector, "");
+			return _a & _b;
+		}
 		return Expression("and", std::move(_a), std::move(_b), Kind::Bool);
 	}
 	friend Expression operator||(Expression _a, Expression _b)
 	{
+		if (_a.sort->kind == Kind::BitVector)
+		{
+			smtAssert(_b.sort->kind == Kind::BitVector, "");
+			return _a | _b;
+		}
 		return Expression("or", std::move(_a), std::move(_b), Kind::Bool);
 	}
 	friend Expression operator==(Expression _a, Expression _b)
 	{
+		smtAssert(_a.sort->kind == _b.sort->kind, "Trying to create an 'equal' expression with different sorts");
 		return Expression("=", std::move(_a), std::move(_b), Kind::Bool);
 	}
 	friend Expression operator!=(Expression _a, Expression _b)
@@ -262,23 +285,63 @@ public:
 	}
 	friend Expression operator+(Expression _a, Expression _b)
 	{
-		return Expression("+", std::move(_a), std::move(_b), Kind::Int);
+		auto intSort = _a.sort;
+		return Expression("+", {std::move(_a), std::move(_b)}, intSort);
 	}
 	friend Expression operator-(Expression _a, Expression _b)
 	{
-		return Expression("-", std::move(_a), std::move(_b), Kind::Int);
+		auto intSort = _a.sort;
+		return Expression("-", {std::move(_a), std::move(_b)}, intSort);
 	}
 	friend Expression operator*(Expression _a, Expression _b)
 	{
-		return Expression("*", std::move(_a), std::move(_b), Kind::Int);
+		auto intSort = _a.sort;
+		return Expression("*", {std::move(_a), std::move(_b)}, intSort);
 	}
 	friend Expression operator/(Expression _a, Expression _b)
 	{
-		return Expression("/", std::move(_a), std::move(_b), Kind::Int);
+		auto intSort = _a.sort;
+		return Expression("/", {std::move(_a), std::move(_b)}, intSort);
 	}
 	friend Expression operator%(Expression _a, Expression _b)
 	{
-		return Expression("mod", std::move(_a), std::move(_b), Kind::Int);
+		auto intSort = _a.sort;
+		return Expression("mod", {std::move(_a), std::move(_b)}, intSort);
+	}
+	friend Expression operator~(Expression _a)
+	{
+		auto bvSort = _a.sort;
+		return Expression("bvnot", {std::move(_a)}, bvSort);
+	}
+	friend Expression operator&(Expression _a, Expression _b)
+	{
+		auto bvSort = _a.sort;
+		return Expression("bvand", {std::move(_a), std::move(_b)}, bvSort);
+	}
+	friend Expression operator|(Expression _a, Expression _b)
+	{
+		auto bvSort = _a.sort;
+		return Expression("bvor", {std::move(_a), std::move(_b)}, bvSort);
+	}
+	friend Expression operator^(Expression _a, Expression _b)
+	{
+		auto bvSort = _a.sort;
+		return Expression("bvxor", {std::move(_a), std::move(_b)}, bvSort);
+	}
+	friend Expression operator<<(Expression _a, Expression _b)
+	{
+		auto bvSort = _a.sort;
+		return Expression("bvshl", {std::move(_a), std::move(_b)}, bvSort);
+	}
+	friend Expression operator>>(Expression _a, Expression _b)
+	{
+		auto bvSort = _a.sort;
+		return Expression("bvlshr", {std::move(_a), std::move(_b)}, bvSort);
+	}
+	static Expression ashr(Expression _a, Expression _b)
+	{
+		auto bvSort = _a.sort;
+		return Expression("bvashr", {std::move(_a), std::move(_b)}, bvSort);
 	}
 	friend Expression operator&(Expression _a, Expression _b)
 	{
@@ -302,8 +365,6 @@ public:
 
 private:
 	/// Manual constructors, should only be used by SolverInterface and this class itself.
-	Expression(std::string _name, std::vector<Expression> _arguments, SortPointer _sort):
-		name(std::move(_name)), arguments(std::move(_arguments)), sort(std::move(_sort)) {}
 	Expression(std::string _name, std::vector<Expression> _arguments, Kind _kind):
 		Expression(std::move(_name), std::move(_arguments), std::make_shared<Sort>(_kind)) {}
 
@@ -320,6 +381,8 @@ DEV_SIMPLE_EXCEPTION(SolverError);
 class SolverInterface
 {
 public:
+	SolverInterface(std::optional<unsigned> _queryTimeout = {}): m_queryTimeout(_queryTimeout) {}
+
 	virtual ~SolverInterface() = default;
 	virtual void reset() = 0;
 
@@ -346,7 +409,10 @@ public:
 	virtual std::vector<std::string> unhandledQueries() { return {}; }
 
 	/// @returns how many SMT solvers this interface has.
-	virtual unsigned solvers() { return 1; }
+	virtual size_t solvers() { return 1; }
+
+protected:
+	std::optional<unsigned> m_queryTimeout;
 };
 
 }

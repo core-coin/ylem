@@ -28,7 +28,7 @@ In the example below, ``y`` and ``z``, the operands of the addition,
 do not have the same type, but ``uint8`` can
 be implicitly converted to ``uint16`` and not vice-versa. Because of that,
 ``y`` is converted to the type of ``z`` before the addition is performed
-in the ``uint16`` type. The resulting type of the expression ``y + z`` is ``uint16`.
+in the ``uint16`` type. The resulting type of the expression ``y + z`` is ``uint16``.
 Because it is assigned to a variable of type ``uint32`` another implicit conversion
 is performed after the addition.
 
@@ -113,6 +113,11 @@ that is large enough to represent it without truncation::
     uint8 a = 12; // fine
     uint32 b = 1234; // fine
     uint16 c = 0x123456; // fails, since it would have to truncate to 0x3456
+
+.. note::
+    Prior to version 0.8.0, any decimal or hexadecimal number literals could be explicitly
+    converted to an integer type. From 0.8.0, such explicit conversions are as strict as implicit
+    conversions, i.e., they are only allowed if the literal fits in the resulting range.
 
 Fixed-Size Byte Arrays
 ----------------------

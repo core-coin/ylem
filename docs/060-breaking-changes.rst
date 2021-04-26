@@ -16,8 +16,8 @@ This section lists changes where the behaviour of your code might
 change without the compiler telling you about it.
 
 * The resulting type of an exponentiation is the type of the base. It used to be the smallest type
-  that can hold both the type of the base and the type of the exponent, as with symmentric
-  operations. Additionally, signed types are allowed for the base of the exponetation.
+  that can hold both the type of the base and the type of the exponent, as with symmetric
+  operations. Additionally, signed types are allowed for the base of the exponentiation.
 
 
 Explicitness Requirements
@@ -36,13 +36,14 @@ For most of the topics the compiler will provide suggestions.
   like so: ``override(Base1, Base2)``.
 
 * Member-access to ``length`` of arrays is now always read-only, even for storage arrays. It is no
-  longer possible to resize storage arrays assigning a new value to their length. Use ``push()``,
-  ``push(value)`` or ``pop()`` instead, or assign a full array, which will of course overwrite existing content.
-  The reason behind this is to prevent storage collisions by gigantic
+  longer possible to resize storage arrays by assigning a new value to their length. Use ``push()``,
+  ``push(value)`` or ``pop()`` instead, or assign a full array, which will of course overwrite the existing content.
+  The reason behind this is to prevent storage collisions of gigantic
   storage arrays.
 
 * The new keyword ``abstract`` can be used to mark contracts as abstract. It has to be used
-  if a contract does not implement all its functions.
+  if a contract does not implement all its functions. Abstract contracts cannot be created using the ``new`` operator,
+  and it is not possible to generate bytecode for them during compilation.
 
 * Libraries have to implement all their functions, not only the internal ones.
 
@@ -86,7 +87,7 @@ New Features
 ============
 
 This section lists things that were not possible prior to Solidity 0.6.0
-or at least were more difficult to achieve prior to Solidity 0.6.0.
+or were more difficult to achieve.
 
  * The :ref:`try/catch statement <try-catch>` allows you to react on failed external calls.
  * ``struct`` and ``enum`` types can be declared at file level.
@@ -103,7 +104,7 @@ Interface Changes
 
 This section lists changes that are unrelated to the language itself, but that have an effect on the interfaces of
 the compiler. These may change the way how you use the compiler on the command line, how you use its programmable
-interface or how you analyze the output produced by it.
+interface, or how you analyze the output produced by it.
 
 New Error Reporter
 ~~~~~~~~~~~~~~~~~~
@@ -131,7 +132,7 @@ Yul Optimizer
 
 Together with the legacy bytecode optimizer, the :doc:`Yul <yul>` optimizer is now enabled by default when you call the compiler
 with ``--optimize``. It can be disabled by calling the compiler with ``--no-optimize-yul``.
-This mostly affects code that uses ABIEncoderV2.
+This mostly affects code that uses ABI coder v2.
 
 C API Changes
 ~~~~~~~~~~~~~

@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /** @file CommonData.h
  * @author Gav Wood <i@gavwood.com>
  * @date 2014
@@ -42,7 +43,7 @@
 template <class T, class U> std::vector<T>& operator+=(std::vector<T>& _a, U& _b)
 {
 	for (auto const& i: _b)
-		_a.push_back(i);
+		_a.push_back(T(i));
 	return _a;
 }
 /// Concatenate the contents of a container onto a vector, move variant.
@@ -77,6 +78,7 @@ template <class U, class... T> std::set<T...>& operator+=(std::set<T...>& _a, U&
 		_a.insert(std::move(x));
 	return _a;
 }
+
 /// Concatenate two vectors of elements.
 template <class T>
 inline std::vector<T> operator+(std::vector<T> const& _a, std::vector<T> const& _b)
@@ -85,30 +87,31 @@ inline std::vector<T> operator+(std::vector<T> const& _a, std::vector<T> const& 
 	ret += _b;
 	return ret;
 }
+
 /// Concatenate two vectors of elements, moving them.
 template <class T>
 inline std::vector<T> operator+(std::vector<T>&& _a, std::vector<T>&& _b)
 {
 	std::vector<T> ret(std::move(_a));
-	if (&_a == &_b)
-		ret += ret;
-	else
-		ret += std::move(_b);
+	assert(&_a != &_b);
+	ret += std::move(_b);
 	return ret;
 }
+
 /// Concatenate something to a sets of elements.
-template <class T, class U>
-inline std::set<T> operator+(std::set<T> const& _a, U&& _b)
+template <class U, class... T>
+inline std::set<T...> operator+(std::set<T...> const& _a, U&& _b)
 {
-	std::set<T> ret(_a);
+	std::set<T...> ret(_a);
 	ret += std::forward<U>(_b);
 	return ret;
 }
+
 /// Concatenate something to a sets of elements, move variant.
-template <class T, class U>
-inline std::set<T> operator+(std::set<T>&& _a, U&& _b)
+template <class U, class... T>
+inline std::set<T...> operator+(std::set<T...>&& _a, U&& _b)
 {
-	std::set<T> ret(std::move(_a));
+	std::set<T...> ret(std::move(_a));
 	ret += std::forward<U>(_b);
 	return ret;
 }
@@ -158,6 +161,22 @@ auto applyMap(Container const& _c, Callable&& _op, OutputContainer _oc = OutputC
 	return _oc;
 }
 
+/// Filter a vector.
+/// Returns a copy of the vector after only taking indices `i` such that `_mask[i]` is true.
+template<typename T>
+std::vector<T> filter(std::vector<T> const& _vec, std::vector<bool> const& _mask)
+{
+	assert(_vec.size() == _mask.size());
+
+	std::vector<T> ret;
+
+	for (size_t i = 0; i < _mask.size(); ++i)
+		if (_mask[i])
+			ret.push_back(_vec[i]);
+
+	return ret;
+}
+
 /// Functional fold.
 /// Given a container @param _c, an initial value @param _acc,
 /// and a binary operator @param _binaryOp(T, U), accumulate
@@ -203,6 +222,79 @@ std::map<V, K> invertMap(std::map<K, V> const& originalMap)
 
 	return inverseMap;
 }
+
+/// Returns a set of keys of a map.
+template <typename K, typename V>
+std::set<K> keys(std::map<K, V> const& _map)
+{
+	return applyMap(_map, [](auto const& _elem) { return _elem.first; }, std::set<K>{});
+}
+
+/// @returns a pointer to the entry of @a _map at @a _key, if there is one, and nullptr otherwise.
+template<typename MapType, typename KeyType>
+decltype(auto) valueOrNullptr(MapType&& _map, KeyType const& _key)
+{
+	auto it = _map.find(_key);
+	return (it == _map.end()) ? nullptr : &it->second;
+}
+
+namespace detail
+{
+struct allow_copy {};
+}
+static constexpr auto allow_copy = detail::allow_copy{};
+
+/// @returns a reference to the entry of @a _map at @a _key, if there is one, and @a _defaultValue otherwise.
+/// Makes sure no copy is involved, unless allow_copy is passed as fourth argument.
+template<
+	typename MapType,
+	typename KeyType,
+	typename ValueType = std::decay_t<decltype(std::declval<MapType>().find(std::declval<KeyType>())->second)> const&,
+	typename AllowCopyType = void*
+>
+decltype(auto) valueOrDefault(MapType&& _map, KeyType const& _key, ValueType&& _defaultValue = {}, AllowCopyType = nullptr)
+{
+	auto it = _map.find(_key);
+	static_assert(
+		std::is_same_v<AllowCopyType, detail::allow_copy> ||
+		std::is_reference_v<decltype((it == _map.end()) ? _defaultValue : it->second)>,
+		"valueOrDefault does not allow copies by default. Pass allow_copy as additional argument, if you want to allow copies."
+	);
+	return (it == _map.end()) ? _defaultValue : it->second;
+}
+
+namespace detail
+{
+template<typename Callable>
+struct MapTuple
+{
+	Callable callable;
+	template<typename TupleType>
+	decltype(auto) operator()(TupleType&& _tuple) {
+		using PlainTupleType = std::remove_cv_t<std::remove_reference_t<TupleType>>;
+		return operator()(
+			std::forward<TupleType>(_tuple),
+			std::make_index_sequence<std::tuple_size_v<PlainTupleType>>{}
+		);
+	}
+private:
+	template<typename TupleType, size_t... I>
+	decltype(auto) operator()(TupleType&& _tuple, std::index_sequence<I...>)
+	{
+		return callable(std::get<I>(std::forward<TupleType>(_tuple))...);
+	}
+};
+}
+
+/// Wraps @a _callable, which takes multiple arguments, into a callable that takes a single tuple of arguments.
+/// Since structured binding in lambdas is not allowed, i.e. [](auto&& [key, value]) { ... } is invalid, this allows
+/// to instead use mapTuple([](auto&& key, auto&& value) { ... }).
+template<typename Callable>
+decltype(auto) mapTuple(Callable&& _callable)
+{
+	return detail::MapTuple<Callable>{std::forward<Callable>(_callable)};
+}
+
 
 // String conversion functions, mainly to/from hex/nibble/byte representations.
 
@@ -299,7 +391,7 @@ template <class T>
 inline bytes toCompactBigEndian(T _val, unsigned _min = 0)
 {
 	static_assert(std::is_same<bigint, T>::value || !std::numeric_limits<T>::is_signed, "only unsigned types or bigint supported"); //bigint does not carry sign bit on shift
-	int i = 0;
+	unsigned i = 0;
 	for (T v = _val; v; ++i, v >>= 8) {}
 	bytes ret(std::max<unsigned>(_min, i), 0);
 	toBigEndian(_val, ret);
@@ -379,7 +471,7 @@ void iterateReplacing(std::vector<T>& _vector, F const& _f)
 		{
 			if (!useModified)
 			{
-				std::move(_vector.begin(), _vector.begin() + i, back_inserter(modifiedVector));
+				std::move(_vector.begin(), _vector.begin() + ptrdiff_t(i), back_inserter(modifiedVector));
 				useModified = true;
 			}
 			modifiedVector += std::move(*r);
@@ -406,7 +498,7 @@ void iterateReplacingWindow(std::vector<T>& _vector, F const& _f, std::index_seq
 		{
 			if (!useModified)
 			{
-				std::move(_vector.begin(), _vector.begin() + i, back_inserter(modifiedVector));
+				std::move(_vector.begin(), _vector.begin() + ptrdiff_t(i), back_inserter(modifiedVector));
 				useModified = true;
 			}
 			modifiedVector += std::move(*r);

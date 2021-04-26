@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 
 #include <libevmasm/GasMeter.h>
 
@@ -282,6 +283,14 @@ u256 GasMeter::dataGas(bytes const& _data, bool _inCreation, langutil::EVMVersio
 	}
 	else
 		gas = bigint(GasCosts::createDataGas) * _data.size();
+	assertThrow(gas < bigint(u256(-1)), OptimizerException, "Gas cost exceeds 256 bits.");
+	return u256(gas);
+}
+
+
+u256 GasMeter::dataGas(uint64_t _length, bool _inCreation, langutil::EVMVersion _evmVersion)
+{
+	bigint gas = bigint(_length) * (_inCreation ? GasCosts::txDataNonZeroGas(_evmVersion) : GasCosts::createDataGas);
 	assertThrow(gas < bigint(u256(-1)), OptimizerException, "Gas cost exceeds 256 bits.");
 	return u256(gas);
 }

@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * Module for applying replacement rules against Expressions.
  */
@@ -22,12 +23,13 @@
 
 #include <libevmasm/SimplificationRule.h>
 
-#include <libyul/AsmDataForward.h>
-#include <libyul/AsmData.h>
+#include <libyul/ASTForward.h>
+#include <libyul/YulString.h>
 
 #include <libsolutil/CommonData.h>
 
 #include <liblangutil/EVMVersion.h>
+#include <liblangutil/SourceLocation.h>
 
 #include <boost/noncopyable.hpp>
 

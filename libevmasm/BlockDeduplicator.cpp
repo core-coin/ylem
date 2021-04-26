@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * @file BlockDeduplicator.cpp
  * @author Christian <c@ethdev.com>
@@ -63,8 +64,9 @@ bool BlockDeduplicator::deduplicate()
 		if (_j < m_items.size() && m_items.at(_j).type() == Tag)
 			pushSecondTag = m_items.at(_j).pushTag();
 
-		BlockIterator first{m_items.begin() + _i, m_items.end(), &pushFirstTag, &pushSelf};
-		BlockIterator second{m_items.begin() + _j, m_items.end(), &pushSecondTag, &pushSelf};
+		using diff_type = BlockIterator::difference_type;
+		BlockIterator first{m_items.begin() + diff_type(_i), m_items.end(), &pushFirstTag, &pushSelf};
+		BlockIterator second{m_items.begin() + diff_type(_j), m_items.end(), &pushSecondTag, &pushSelf};
 		BlockIterator end{m_items.end(), m_items.end()};
 
 		if (first != end && (*first).type() == Tag)
@@ -120,7 +122,7 @@ bool BlockDeduplicator::applyTagReplacement(
 			if (it != _replacements.end())
 			{
 				changed = true;
-				item.setPushTagSubIdAndTag(subId, size_t(it->second));
+				item.setPushTagSubIdAndTag(subId, static_cast<size_t>(it->second));
 			}
 		}
 	return changed;

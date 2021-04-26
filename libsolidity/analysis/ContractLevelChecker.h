@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * Component that verifies overloads, abstract contracts, function clashes and others
  * checks at contract or function level.
@@ -38,7 +39,7 @@ namespace solidity::frontend
 
 /**
  * Component that verifies overloads, abstract contracts, function clashes and others
- * checks at contract or function level.
+ * checks at file, contract, or function level.
  */
 class ContractLevelChecker
 {
@@ -50,11 +51,14 @@ public:
 		m_errorReporter(_errorReporter)
 	{}
 
+	/// Performs checks on the given source ast.
+	/// @returns true iff all checks passed. Note even if all checks passed, errors() can still contain warnings
+	bool check(SourceUnit const& _sourceUnit);
+
+private:
 	/// Performs checks on the given contract.
 	/// @returns true iff all checks passed. Note even if all checks passed, errors() can still contain warnings
 	bool check(ContractDefinition const& _contract);
-
-private:
 	/// Checks that two functions defined in this contract with the same name have different
 	/// arguments and that there is at most one constructor.
 	void checkDuplicateFunctions(ContractDefinition const& _contract);
@@ -83,6 +87,8 @@ private:
 
 	/// Warns if the contract has a payable fallback, but no receive ether function.
 	void checkPayableFallbackWithoutReceive(ContractDefinition const& _contract);
+	/// Error if the contract requires too much storage
+	void checkStorageSize(ContractDefinition const& _contract);
 
 	OverrideChecker m_overrideChecker;
 	langutil::ErrorReporter& m_errorReporter;

@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * Specific AST walkers that collect semantical facts.
  */
@@ -21,7 +22,7 @@
 #include <libyul/optimiser/Semantics.h>
 
 #include <libyul/Exceptions.h>
-#include <libyul/AsmData.h>
+#include <libyul/AST.h>
 #include <libyul/Dialect.h>
 #include <libyul/backends/evm/EVMDialect.h>
 
@@ -54,6 +55,16 @@ SideEffectsCollector::SideEffectsCollector(Dialect const& _dialect, Statement co
 SideEffectsCollector::SideEffectsCollector(
 	Dialect const& _dialect,
 	Block const& _ast,
+	map<YulString, SideEffects> const* _functionSideEffects
+):
+	SideEffectsCollector(_dialect, _functionSideEffects)
+{
+	operator()(_ast);
+}
+
+SideEffectsCollector::SideEffectsCollector(
+	Dialect const& _dialect,
+	ForLoop const& _ast,
 	map<YulString, SideEffects> const* _functionSideEffects
 ):
 	SideEffectsCollector(_dialect, _functionSideEffects)
@@ -102,52 +113,35 @@ map<YulString, SideEffects> SideEffectsPropagator::sideEffects(
 	// is actually a bit different from "not movable".
 
 	map<YulString, SideEffects> ret;
-	for (auto const& function: _directCallGraph.functionsWithLoops)
+	for (auto const& function: _directCallGraph.functionsWithLoops + _directCallGraph.recursiveFunctions())
 	{
 		ret[function].movable = false;
-		ret[function].sideEffectFree = false;
-		ret[function].sideEffectFreeIfNoMSize = false;
-	}
-
-	// Detect recursive functions.
-	for (auto const& call: _directCallGraph.functionCalls)
-	{
-		// TODO we could shortcut the search as soon as we find a
-		// function that has as bad side-effects as we can
-		// ever achieve via recursion.
-		auto search = [&](YulString const& _functionName, util::CycleDetector<YulString>& _cycleDetector, size_t) {
-			for (auto const& callee: _directCallGraph.functionCalls.at(_functionName))
-				if (!_dialect.builtin(callee))
-					if (_cycleDetector.run(callee))
-						return;
-		};
-		if (util::CycleDetector<YulString>(search).run(call.first))
-		{
-			ret[call.first].movable = false;
-			ret[call.first].sideEffectFree = false;
-			ret[call.first].sideEffectFreeIfNoMSize = false;
-		}
+		ret[function].canBeRemoved = false;
+		ret[function].canBeRemovedIfNoMSize = false;
+		ret[function].cannotLoop = false;
 	}
 
 	for (auto const& call: _directCallGraph.functionCalls)
 	{
 		YulString funName = call.first;
 		SideEffects sideEffects;
-		util::BreadthFirstSearch<YulString>{call.second, {funName}}.run(
-			[&](YulString _function, auto&& _addChild) {
-				if (sideEffects == SideEffects::worst())
-					return;
-				if (BuiltinFunction const* f = _dialect.builtin(_function))
-					sideEffects += f->sideEffects;
-				else
-				{
-					if (ret.count(_function))
-						sideEffects += ret[_function];
-					for (YulString callee: _directCallGraph.functionCalls.at(_function))
-						_addChild(callee);
-				}
+		auto _visit = [&, visited = std::set<YulString>{}](YulString _function, auto&& _recurse) mutable {
+			if (!visited.insert(_function).second)
+				return;
+			if (sideEffects == SideEffects::worst())
+				return;
+			if (BuiltinFunction const* f = _dialect.builtin(_function))
+				sideEffects += f->sideEffects;
+			else
+			{
+				if (ret.count(_function))
+					sideEffects += ret[_function];
+				for (YulString callee: _directCallGraph.functionCalls.at(_function))
+					_recurse(callee, _recurse);
 			}
-		);
+		};
+		for (auto const& _v: call.second)
+			_visit(_v, _visit);
 		ret[funName] += sideEffects;
 	}
 	return ret;
@@ -180,7 +174,7 @@ pair<TerminationFinder::ControlFlow, size_t> TerminationFinder::firstUncondition
 		if (controlFlow != ControlFlow::FlowOut)
 			return {controlFlow, i};
 	}
-	return {ControlFlow::FlowOut, size_t(-1)};
+	return {ControlFlow::FlowOut, numeric_limits<size_t>::max()};
 }
 
 TerminationFinder::ControlFlow TerminationFinder::controlFlowKind(Statement const& _statement)

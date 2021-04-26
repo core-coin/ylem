@@ -2,22 +2,23 @@
 Units and Globally Available Variables
 **************************************
 
-.. index:: wei, finney, szabo, ether
+.. index:: wei, finney, szabo, gwei, ether
 
 Ether Units
 ===========
 
-A literal number can take a suffix of ``wei``, ``finney``, ``szabo`` or ``ether`` to specify a subdenomination of Ether, where Ether numbers without a postfix are assumed to be Wei.
+A literal number can take a suffix of ``wei``, ``gwei`` or ``ether`` to specify a subdenomination of Ether, where Ether numbers without a postfix are assumed to be Wei.
 
 ::
 
     assert(1 wei == 1);
-    assert(1 szabo == 1e12);
-    assert(1 finney == 1e15);
+    assert(1 gwei == 1e9);
     assert(1 ether == 1e18);
 
 The only effect of the subdenomination suffix is a multiplication by a power of ten.
 
+.. note::
+    The denominations ``finney`` and ``szabo`` have been removed in version 0.7.0.
 
 .. index:: time, seconds, minutes, hours, days, weeks, years
 
@@ -47,7 +48,7 @@ These suffixes cannot be applied to variables. For example, if you want to
 interpret a function parameter in days, you can in the following way::
 
     function f(uint start, uint daysAfter) public {
-        if (now >= start + daysAfter * 1 days) {
+        if (block.timestamp >= start + daysAfter * 1 days) {
           // ...
         }
     }
@@ -61,13 +62,14 @@ There are special variables and functions which always exist in the global
 namespace and are mainly used to provide information about the blockchain
 or are general-use utility functions.
 
-.. index:: abi, block, coinbase, difficulty, encode, number, block;number, timestamp, block;timestamp, msg, data, gas, sender, value, now, gas price, origin
+.. index:: abi, block, coinbase, difficulty, encode, number, block;number, timestamp, block;timestamp, msg, data, gas, sender, value, gas price, origin
 
 
 Block and Transaction Properties
 --------------------------------
 
 - ``blockhash(uint blockNumber) returns (bytes32)``: hash of the given block - only works for 256 most recent, excluding current, blocks
+- ``block.chainid`` (``uint``): current chain id
 - ``block.coinbase`` (``address payable``): current block miner's address
 - ``block.difficulty`` (``uint``): current block difficulty
 - ``block.gaslimit`` (``uint``): current block gaslimit
@@ -75,12 +77,11 @@ Block and Transaction Properties
 - ``block.timestamp`` (``uint``): current block timestamp as seconds since unix epoch
 - ``gasleft() returns (uint256)``: remaining gas
 - ``msg.data`` (``bytes calldata``): complete calldata
-- ``msg.sender`` (``address payable``): sender of the message (current call)
+- ``msg.sender`` (``address``): sender of the message (current call)
 - ``msg.sig`` (``bytes4``): first four bytes of the calldata (i.e. function identifier)
 - ``msg.value`` (``uint``): number of wei sent with the message
-- ``now`` (``uint``): current block timestamp (alias for ``block.timestamp``)
 - ``tx.gasprice`` (``uint``): gas price of the transaction
-- ``tx.origin`` (``address payable``): sender of the transaction (full call chain)
+- ``tx.origin`` (``address``): sender of the transaction (full call chain)
 
 .. note::
     The values of all members of ``msg``, including ``msg.sender`` and
@@ -88,7 +89,7 @@ Block and Transaction Properties
     This includes calls to library functions.
 
 .. note::
-    Do not rely on ``block.timestamp``, ``now`` and ``blockhash`` as a source of randomness,
+    Do not rely on ``block.timestamp`` or ``blockhash`` as a source of randomness,
     unless you know what you are doing.
 
     Both the timestamp and the block hash can be influenced by miners to some degree.
@@ -112,6 +113,9 @@ Block and Transaction Properties
     The function ``gasleft`` was previously known as ``msg.gas``, which was deprecated in
     version 0.4.21 and removed in version 0.5.0.
 
+.. note::
+    In version 0.7.0, the alias ``now`` (for ``block.timestamp``) was removed.
+
 .. index:: abi, encoding, packed
 
 ABI Encoding and Decoding Functions
@@ -132,6 +136,13 @@ ABI Encoding and Decoding Functions
 See the documentation about the :ref:`ABI <ABI>` and the
 :ref:`tightly packed encoding <abi_packed_mode>` for details about the encoding.
 
+.. index:: bytes members
+
+Members of bytes
+----------------
+
+- ``bytes.concat(...) returns (bytes memory)``: :ref:`Concatenates variable number of bytes and bytes1, ..., bytes32 arguments to one byte array<bytes-concat>`
+
 .. index:: assert, revert, require
 
 Error Handling
@@ -141,7 +152,7 @@ See the dedicated section on :ref:`assert and require<assert-and-require>` for
 more details on error handling and when to use which function.
 
 ``assert(bool condition)``
-    causes an invalid opcode and thus state change reversion if the condition is not met - to be used for internal errors.
+    causes a Panic error and thus state change reversion if the condition is not met - to be used for internal errors.
 
 ``require(bool condition)``
     reverts if the condition is not met - to be used for errors in inputs or external components.
@@ -156,6 +167,8 @@ more details on error handling and when to use which function.
     abort execution and revert state changes, providing an explanatory string
 
 .. index:: keccak256, ripemd160, sha256, ecrecover, addmod, mulmod, cryptography,
+
+.. _mathematical-and-cryptographic-functions:
 
 Mathematical and Cryptographic Functions
 ----------------------------------------
@@ -190,23 +203,23 @@ Mathematical and Cryptographic Functions
     ``ecrecover`` returns an ``address``, and not an ``address payable``. See :ref:`address payable<address>` for
     conversion, in case you need to transfer funds to the recovered address.
 
-    For further details, read `example usage <https://ethereum.stackexchange.com/q/1777/222>`_.
+    For further details, read `example usage <https://ethereum.stackexchange.com/questions/1777/workflow-on-signing-a-string-with-private-key-followed-by-signature-verificatio>`_.
 
 .. warning::
 
     If you use ``ecrecover``, be aware that a valid signature can be turned into a different valid signature without
     requiring knowledge of the corresponding private key. In the Homestead hard fork, this issue was fixed
-    for _transaction_ signatures (see `EIP-2 <http://eips.ethereum.org/EIPS/eip-2#specification>`_), but
+    for _transaction_ signatures (see `EIP-2 <https://eips.ethereum.org/EIPS/eip-2#specification>`_), but
     the ecrecover function remained unchanged.
 
     This is usually not a problem unless you require signatures to be unique or
-    use them to identify items. OpenZeppelin have a `ECDSA helper library <https://docs.openzeppelin.org/v2.3.0/api/cryptography#ecdsa>`_ that you can use as a wrapper for ``ecrecover`` without this issue.
+    use them to identify items. OpenZeppelin have a `ECDSA helper library <https://docs.openzeppelin.com/contracts/2.x/api/cryptography#ECDSA>`_ that you can use as a wrapper for ``ecrecover`` without this issue.
 
 .. note::
 
     When running ``sha256``, ``ripemd160`` or ``ecrecover`` on a *private blockchain*, you might encounter Out-of-Gas. This is because these functions are implemented as "precompiled contracts" and only really exist after they receive the first message (although their contract code is hardcoded). Messages to non-existing contracts are more expensive and thus the execution might run into an Out-of-Gas error. A workaround for this problem is to first send Wei (1 for example) to each of the contracts before you use them in your actual contracts. This is not an issue on the main or test net.
 
-.. index:: balance, send, transfer, call, callcode, delegatecall, staticcall
+.. index:: balance, codehash, send, transfer, call, callcode, delegatecall, staticcall
 
 .. _address_related:
 
@@ -215,6 +228,12 @@ Members of Address Types
 
 ``<address>.balance`` (``uint256``)
     balance of the :ref:`address` in Wei
+
+``<address>.code`` (``bytes memory``)
+    code at the :ref:`address` (can be empty)
+
+``<address>.codehash`` (``bytes32``)
+    the codehash of the :ref:`address`
 
 ``<address payable>.transfer(uint256 amount)``
     send given amount of Wei to :ref:`address`, reverts on failure, forwards 2300 gas stipend, not adjustable
@@ -242,6 +261,16 @@ For more information, see the section on :ref:`address`.
     (this can always be forced by the caller) and it also fails if the recipient runs out of gas. So in order
     to make safe Ether transfers, always check the return value of ``send``, use ``transfer`` or even better:
     Use a pattern where the recipient withdraws the money.
+
+.. warning::
+    Due to the fact that the EVM considers a call to a non-existing contract to always succeed,
+    Solidity includes an extra check using the ``extcodesize`` opcode when performing external calls.
+    This ensures that the contract that is about to be called either actually exists (it contains code)
+    or an exception is raised.
+
+    The low-level calls which operate on addresses rather than contract instances (i.e. ``.call()``,
+    ``.delegatecall()``, ``.staticcall()``, ``.send()`` and ``.transfer()``) **do not** include this
+    check, which makes them cheaper in terms of gas but also less safe.
 
 .. note::
    Prior to version 0.5.0, Solidity allowed address members to be accessed by a contract instance, for example ``this.balance``.

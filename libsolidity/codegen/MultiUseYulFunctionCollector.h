@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * Container of (unparsed) Yul functions identified by name which are meant to be generated
  * only once.
@@ -39,6 +40,11 @@ public:
 	/// @a m_requestedFunctions if it has not been created yet and returns @a _name in both
 	/// cases.
 	std::string createFunction(std::string const& _name, std::function<std::string()> const& _creator);
+
+	std::string createFunction(
+		std::string const& _name,
+		std::function<std::string(std::vector<std::string>&, std::vector<std::string>&)> const& _creator
+	);
 
 	/// @returns concatenation of all generated functions.
 	/// Guarantees that the order of functions in the generated code is deterministic and

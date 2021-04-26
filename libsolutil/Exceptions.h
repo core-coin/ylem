@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 
 #pragma once
 
@@ -47,7 +48,7 @@ private:
 DEV_SIMPLE_EXCEPTION(InvalidAddress);
 DEV_SIMPLE_EXCEPTION(BadHexCharacter);
 DEV_SIMPLE_EXCEPTION(BadHexCase);
-DEV_SIMPLE_EXCEPTION(FileError);
+DEV_SIMPLE_EXCEPTION(FileNotFound);
 DEV_SIMPLE_EXCEPTION(DataTooLong);
 DEV_SIMPLE_EXCEPTION(StringTooLong);
 

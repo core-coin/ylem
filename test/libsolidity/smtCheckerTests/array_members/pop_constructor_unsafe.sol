@@ -1,10 +1,10 @@
-pragma experimental SMTChecker;
-
 contract C {
 	uint[] a;
-	constructor() public {
+	constructor() {
 		a.pop();
 	}
 }
+// ====
+// SMTEngine: all
 // ----
-// Warning: (83-90): Empty array "pop" detected here.
+// Warning 2529: (43-50): CHC: Empty array "pop" happens here.\nCounterexample:\na = []\n\nTransaction trace:\nC.constructor()

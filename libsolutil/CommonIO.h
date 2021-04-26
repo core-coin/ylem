@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /** @file CommonIO.h
  * @author Gav Wood <i@gavwood.com>
  * @date 2014
@@ -31,7 +32,8 @@ namespace solidity::util
 {
 
 /// Retrieve and returns the contents of the given file as a std::string.
-/// If the file doesn't exist or isn't readable, returns an empty container / bytes.
+/// If the file doesn't exist, it will throw a FileNotFound exception.
+/// If the file is empty, returns an empty string.
 std::string readFileAsString(std::string const& _file);
 
 /// Retrieve and returns the contents of standard input (until EOF).

@@ -27,7 +27,7 @@
 #include <libyul/optimiser/Semantics.h>
 #include <libyul/SideEffects.h>
 #include <libyul/Exceptions.h>
-#include <libyul/AsmData.h>
+#include <libyul/AST.h>
 #include <libyul/Dialect.h>
 
 using namespace std;
@@ -67,7 +67,7 @@ void CommonSubexpressionEliminator::visit(Expression& _e)
 				// We should not modify function arguments that have to be literals
 				// Note that replacing the function call entirely is fine,
 				// if the function call is movable.
-				if (!builtin->literalArguments || !builtin->literalArguments.value()[i - 1])
+				if (!builtin->literalArgument(i - 1))
 					visit(funCall.arguments[i - 1]);
 
 			descend = false;
@@ -89,12 +89,9 @@ void CommonSubexpressionEliminator::visit(Expression& _e)
 		if (m_value.count(name))
 		{
 			assertThrow(m_value.at(name).value, OptimizerException, "");
-			if (holds_alternative<Identifier>(*m_value.at(name).value))
-			{
-				YulString value = std::get<Identifier>(*m_value.at(name).value).name;
-				assertThrow(inScope(value), OptimizerException, "");
-				_e = Identifier{locationOf(_e), value};
-			}
+			if (Identifier const* value = get_if<Identifier>(m_value.at(name).value))
+				if (inScope(value->name))
+					_e = Identifier{locationOf(_e), value->name};
 		}
 	}
 	else
@@ -103,8 +100,7 @@ void CommonSubexpressionEliminator::visit(Expression& _e)
 		for (auto const& [variable, value]: m_value)
 		{
 			assertThrow(value.value, OptimizerException, "");
-			assertThrow(inScope(variable), OptimizerException, "");
-			if (SyntacticallyEqual{}(_e, *value.value))
+			if (SyntacticallyEqual{}(_e, *value.value) && inScope(variable))
 			{
 				_e = Identifier{locationOf(_e), variable};
 				break;

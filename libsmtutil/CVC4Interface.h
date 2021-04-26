@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 
 #pragma once
 
@@ -39,7 +40,7 @@ namespace solidity::smtutil
 class CVC4Interface: public SolverInterface, public boost::noncopyable
 {
 public:
-	CVC4Interface();
+	CVC4Interface(std::optional<unsigned> _queryTimeout = {});
 
 	void reset() override;
 

@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * @author Liana <liana@ethdev.com>
  * @date 2015
@@ -26,11 +27,20 @@ using namespace std;
 using namespace solidity;
 using namespace solidity::langutil;
 
-Error::Error(Type _type, SourceLocation const& _location, string const& _description):
+Error::Error(
+	ErrorId _errorId, Error::Type _type,
+	std::string const& _description,
+	SourceLocation const& _location,
+	SecondarySourceLocation const& _secondaryLocation
+):
+	m_errorId(_errorId),
 	m_type(_type)
 {
 	switch (m_type)
 	{
+	case Type::CodeGenerationError:
+		m_typeName = "CodeGenerationError";
+		break;
 	case Type::DeclarationError:
 		m_typeName = "DeclarationError";
 		break;
@@ -53,14 +63,8 @@ Error::Error(Type _type, SourceLocation const& _location, string const& _descrip
 
 	if (_location.isValid())
 		*this << errinfo_sourceLocation(_location);
+	if (!_secondaryLocation.infos.empty())
+		*this << errinfo_secondarySourceLocation(_secondaryLocation);
 	if (!_description.empty())
 		*this << util::errinfo_comment(_description);
-}
-
-Error::Error(Error::Type _type, std::string const& _description, SourceLocation const& _location):
-	Error(_type)
-{
-	if (_location.isValid())
-		*this << errinfo_sourceLocation(_location);
-	*this << util::errinfo_comment(_description);
 }

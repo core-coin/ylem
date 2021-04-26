@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 
 #pragma once
 
@@ -55,6 +56,7 @@ private:
 	bool visit(Break const&) override;
 	bool visit(Continue const&) override;
 	bool visit(Throw const&) override;
+	bool visit(RevertStatement const&) override;
 	bool visit(PlaceholderStatement const&) override;
 	bool visit(FunctionCall const& _functionCall) override;
 	bool visit(ModifierInvocation const& _modifierInvocation) override;

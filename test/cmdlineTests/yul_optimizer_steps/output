@@ -6,28 +6,28 @@ Optimized IR:
  *                !USE AT YOUR OWN RISK!               *
  *******************************************************/
 
-object "C_6" {
+object "C_7" {
     code {
         {
             mstore(64, 128)
             if callvalue() { revert(0, 0) }
-            codecopy(0, dataoffset("C_6_deployed"), datasize("C_6_deployed"))
-            return(0, datasize("C_6_deployed"))
+            codecopy(0, dataoffset("C_7_deployed"), datasize("C_7_deployed"))
+            return(0, datasize("C_7_deployed"))
         }
     }
-    object "C_6_deployed" {
+    object "C_7_deployed" {
         code {
             {
                 mstore(64, 128)
                 if iszero(lt(calldatasize(), 4))
                 {
-                    let selector := shift_right_224_unsigned(calldataload(0))
+                    let selector := shift_right_unsigned(calldataload(0))
                     pop(selector)
                 }
                 pop(iszero(calldatasize()))
                 revert(0, 0)
             }
-            function shift_right_224_unsigned(value) -> newValue
+            function shift_right_unsigned(value) -> newValue
             { newValue := shr(224, value) }
         }
     }

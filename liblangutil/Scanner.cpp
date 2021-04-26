@@ -54,9 +54,10 @@
 #include <liblangutil/Exceptions.h>
 #include <liblangutil/Scanner.h>
 
-#include <algorithm>
+#include <boost/algorithm/string/classification.hpp>
+
 #include <optional>
-#include <ostream>
+#include <string_view>
 #include <tuple>
 
 using namespace std;
@@ -73,11 +74,14 @@ string to_string(ScannerError _errorCode)
 		case ScannerError::IllegalHexDigit: return "Hexadecimal digit missing or invalid.";
 		case ScannerError::IllegalCommentTerminator: return "Expected multi-line comment-terminator.";
 		case ScannerError::IllegalEscapeSequence: return "Invalid escape sequence.";
+		case ScannerError::IllegalCharacterInString: return "Invalid character in string.";
 		case ScannerError::IllegalStringEndQuote: return "Expected string end-quote.";
 		case ScannerError::IllegalNumberSeparator: return "Invalid use of number separator '_'.";
 		case ScannerError::IllegalExponent: return "Invalid exponent.";
 		case ScannerError::IllegalNumberEnd: return "Identifier-start is not allowed at end of a number.";
 		case ScannerError::OctalNotAllowed: return "Octal numbers not allowed.";
+		case ScannerError::DirectionalOverrideUnderflow: return "Unicode direction override underflow in comment or string literal.";
+		case ScannerError::DirectionalOverrideMismatch: return "Mismatching directional override markers in comment or string literal.";
 		default:
 			solAssert(false, "Unhandled case in to_string(ScannerError)");
 			return "";
@@ -146,7 +150,7 @@ void Scanner::reset(shared_ptr<CharStream> _source)
 void Scanner::reset()
 {
 	m_source->reset();
-	m_supportPeriodInIdentifier = false;
+	m_kind = ScannerKind::Solidity;
 	m_char = m_source->get();
 	skipWhitespace();
 	next();
@@ -162,16 +166,10 @@ void Scanner::setPosition(size_t _offset)
 	next();
 }
 
-void Scanner::supportPeriodInIdentifier(bool _value)
-{
-	m_supportPeriodInIdentifier = _value;
-	rescan();
-}
-
 bool Scanner::scanHexByte(char& o_scannedByte)
 {
 	char x = 0;
-	for (int i = 0; i < 2; i++)
+	for (size_t i = 0; i < 2; i++)
 	{
 		int d = hexValue(m_char);
 		if (d < 0)
@@ -179,7 +177,7 @@ bool Scanner::scanHexByte(char& o_scannedByte)
 			rollback(i);
 			return false;
 		}
-		x = x * 16 + d;
+		x = static_cast<char>(x * 16 + d);
 		advance();
 	}
 	o_scannedByte = x;
@@ -189,7 +187,7 @@ bool Scanner::scanHexByte(char& o_scannedByte)
 std::optional<unsigned> Scanner::scanUnicode()
 {
 	unsigned x = 0;
-	for (int i = 0; i < 4; i++)
+	for (size_t i = 0; i < 4; i++)
 	{
 		int d = hexValue(m_char);
 		if (d < 0)
@@ -197,7 +195,7 @@ std::optional<unsigned> Scanner::scanUnicode()
 			rollback(i);
 			return {};
 		}
-		x = x * 16 + d;
+		x = x * 16 + static_cast<unsigned>(d);
 		advance();
 	}
 	return x;
@@ -207,17 +205,17 @@ std::optional<unsigned> Scanner::scanUnicode()
 void Scanner::addUnicodeAsUTF8(unsigned codepoint)
 {
 	if (codepoint <= 0x7f)
-		addLiteralChar(codepoint);
+		addLiteralChar(char(codepoint));
 	else if (codepoint <= 0x7ff)
 	{
-		addLiteralChar(0xc0 | (codepoint >> 6));
-		addLiteralChar(0x80 | (codepoint & 0x3f));
+		addLiteralChar(char(0xc0u | (codepoint >> 6u)));
+		addLiteralChar(char(0x80u | (codepoint & 0x3fu)));
 	}
 	else
 	{
-		addLiteralChar(0xe0 | (codepoint >> 12));
-		addLiteralChar(0x80 | ((codepoint >> 6) & 0x3f));
-		addLiteralChar(0x80 | (codepoint & 0x3f));
+		addLiteralChar(char(0xe0u | (codepoint >> 12u)));
+		addLiteralChar(char(0x80u | ((codepoint >> 6u) & 0x3fu)));
+		addLiteralChar(char(0x80u | (codepoint & 0x3fu)));
 	}
 }
 
@@ -225,10 +223,10 @@ void Scanner::rescan()
 {
 	size_t rollbackTo = 0;
 	if (m_skippedComments[Current].literal.empty())
-		rollbackTo = m_tokens[Current].location.start;
+		rollbackTo = static_cast<size_t>(m_tokens[Current].location.start);
 	else
-		rollbackTo = m_skippedComments[Current].location.start;
-	m_char = m_source->rollback(size_t(m_source->position()) - rollbackTo);
+		rollbackTo = static_cast<size_t>(m_skippedComments[Current].location.start);
+	m_char = m_source->rollback(m_source->position() - rollbackTo);
 	next();
 	next();
 	next();
@@ -260,7 +258,7 @@ Token Scanner::selectToken(char _next, Token _then, Token _else)
 
 bool Scanner::skipWhitespace()
 {
-	int const startPosition = sourcePos();
+	size_t const startPosition = sourcePos();
 	while (isWhiteSpace(m_char))
 		advance();
 	// Return whether or not we skipped any characters.
@@ -269,19 +267,68 @@ bool Scanner::skipWhitespace()
 
 bool Scanner::skipWhitespaceExceptUnicodeLinebreak()
 {
-	int const startPosition = sourcePos();
+	size_t const startPosition = sourcePos();
 	while (isWhiteSpace(m_char) && !isUnicodeLinebreak())
 		advance();
 	// Return whether or not we skipped any characters.
 	return sourcePos() != startPosition;
 }
 
+
+namespace
+{
+
+/// Tries to scan for an RLO/LRO/RLE/LRE/PDF and keeps track of script writing direction override depth.
+///
+/// @returns ScannerError::NoError in case of successful parsing and directional encodings are paired
+///          and error code in case the input's lexical parser state is invalid and this error should be reported
+///          to the user.
+static ScannerError validateBiDiMarkup(CharStream& _stream, size_t _startPosition)
+{
+	static array<pair<string_view, int>, 5> constexpr directionalSequences{
+		pair<string_view, int>{"\xE2\x80\xAD", 1}, // U+202D (LRO - Left-to-Right Override)
+		pair<string_view, int>{"\xE2\x80\xAE", 1}, // U+202E (RLO - Right-to-Left Override)
+		pair<string_view, int>{"\xE2\x80\xAA", 1}, // U+202A (LRE - Left-to-Right Embedding)
+		pair<string_view, int>{"\xE2\x80\xAB", 1}, // U+202B (RLE - Right-to-Left Embedding)
+		pair<string_view, int>{"\xE2\x80\xAC", -1} // U+202C (PDF - Pop Directional Formatting
+	};
+
+	size_t endPosition = _stream.position();
+	_stream.setPosition(_startPosition);
+
+	int directionOverrideDepth = 0;
+
+	for (size_t currentPos = _startPosition; currentPos < endPosition; ++currentPos)
+	{
+		_stream.setPosition(currentPos);
+
+		for (auto const& [sequence, depthChange]: directionalSequences)
+			if (_stream.prefixMatch(sequence))
+				directionOverrideDepth += depthChange;
+
+		if (directionOverrideDepth < 0)
+			return ScannerError::DirectionalOverrideUnderflow;
+	}
+
+	_stream.setPosition(endPosition);
+
+	return directionOverrideDepth > 0 ? ScannerError::DirectionalOverrideMismatch : ScannerError::NoError;
+}
+
+}
+
 Token Scanner::skipSingleLineComment()
 {
 	// Line terminator is not part of the comment. If it is a
 	// non-ascii line terminator, it will result in a parser error.
+	size_t startPosition = m_source->position();
 	while (!isUnicodeLinebreak())
-		if (!advance()) break;
+		if (!advance())
+			break;
+
+	ScannerError unicodeDirectionError = validateBiDiMarkup(*m_source, startPosition);
+	if (unicodeDirectionError != ScannerError::NoError)
+		return setError(unicodeDirectionError);
 
 	return Token::Whitespace;
 }
@@ -309,11 +356,10 @@ bool Scanner::tryScanEndOfLine()
 	return false;
 }
 
-int Scanner::scanSingleLineDocComment()
+size_t Scanner::scanSingleLineDocComment()
 {
 	LiteralScope literal(this, LITERAL_TYPE_COMMENT);
-	int endPosition = m_source->position();
-	advance(); //consume the last '/' at ///
+	size_t endPosition = m_source->position();
 
 	skipWhitespaceExceptUnicodeLinebreak();
 
@@ -332,6 +378,8 @@ int Scanner::scanSingleLineDocComment()
 				m_source->get(1) == '/' &&
 				m_source->get(2) == '/')
 			{
+				if (!m_source->isPastEndOfInput(4) && m_source->get(3) == '/')
+					break; // "////" is not a documentation comment
 				m_char = m_source->advanceAndGet(3);
 				if (atEndOfLine())
 					continue;
@@ -353,17 +401,21 @@ int Scanner::scanSingleLineDocComment()
 
 Token Scanner::skipMultiLineComment()
 {
-	advance();
+	size_t startPosition = m_source->position();
 	while (!isSourcePastEndOfInput())
 	{
-		char ch = m_char;
+		char prevChar = m_char;
 		advance();
 
 		// If we have reached the end of the multi-line comment, we
 		// consume the '/' and insert a whitespace. This way all
 		// multi-line comments are treated as whitespace.
-		if (ch == '*' && m_char == '/')
+		if (prevChar == '*' && m_char == '/')
 		{
+			ScannerError unicodeDirectionError = validateBiDiMarkup(*m_source, startPosition);
+			if (unicodeDirectionError != ScannerError::NoError)
+				return setError(unicodeDirectionError);
+
 			m_char = ' ';
 			return Token::Whitespace;
 		}
@@ -429,7 +481,7 @@ Token Scanner::scanMultiLineDocComment()
 
 Token Scanner::scanSlash()
 {
-	int firstSlashPosition = sourcePos();
+	int firstSlashPosition = static_cast<int>(sourcePos());
 	advance();
 	if (m_char == '/')
 	{
@@ -437,11 +489,16 @@ Token Scanner::scanSlash()
 			return Token::Whitespace;
 		else if (m_char == '/')
 		{
+			advance(); //consume the last '/' at ///
+
+			// "////"
+			if (m_char == '/')
+				return skipSingleLineComment();
 			// doxygen style /// comment
 			m_skippedComments[NextNext].location.start = firstSlashPosition;
 			m_skippedComments[NextNext].location.source = m_source;
 			m_skippedComments[NextNext].token = Token::CommentLiteral;
-			m_skippedComments[NextNext].location.end = scanSingleLineDocComment();
+			m_skippedComments[NextNext].location.end = static_cast<int>(scanSingleLineDocComment());
 			return Token::Whitespace;
 		}
 		else
@@ -462,12 +519,15 @@ Token Scanner::scanSlash()
 				advance(); //skip the closing slash
 				return Token::Whitespace;
 			}
+			// "/***"
+			if (m_char == '*')
+				// "/***/" may be interpreted as empty natspec or skipped; skipping is simpler
+				return skipMultiLineComment();
 			// we actually have a multiline documentation comment
-			Token comment;
 			m_skippedComments[NextNext].location.start = firstSlashPosition;
 			m_skippedComments[NextNext].location.source = m_source;
-			comment = scanMultiLineDocComment();
-			m_skippedComments[NextNext].location.end = sourcePos();
+			Token comment = scanMultiLineDocComment();
+			m_skippedComments[NextNext].location.end = static_cast<int>(sourcePos());
 			m_skippedComments[NextNext].token = comment;
 			if (comment == Token::Illegal)
 				return Token::Illegal; // error already set
@@ -495,12 +555,12 @@ void Scanner::scanToken()
 	do
 	{
 		// Remember the position of the next token
-		m_tokens[NextNext].location.start = sourcePos();
+		m_tokens[NextNext].location.start = static_cast<int>(sourcePos());
 		switch (m_char)
 		{
 		case '"':
 		case '\'':
-			token = scanString();
+			token = scanString(false);
 			break;
 		case '<':
 			// < <= << <<=
@@ -537,7 +597,7 @@ void Scanner::scanToken()
 			if (m_char == '=')
 				token = selectToken(Token::Equal);
 			else if (m_char == '>')
-				token = selectToken(Token::Arrow);
+				token = selectToken(Token::DoubleArrow);
 			else
 				token = Token::Assign;
 			break;
@@ -560,12 +620,14 @@ void Scanner::scanToken()
 				token = Token::Add;
 			break;
 		case '-':
-			// - -- -=
+			// - -- -= ->
 			advance();
 			if (m_char == '-')
 				token = selectToken(Token::Dec);
 			else if (m_char == '=')
 				token = selectToken(Token::AssignSub);
+			else if (m_char == '>')
+				token = selectToken(Token::RightArrow);
 			else
 				token = Token::Sub;
 			break;
@@ -675,6 +737,18 @@ void Scanner::scanToken()
 					else
 						token = setError(ScannerError::IllegalToken);
 				}
+				else if (token == Token::Unicode && m_kind != ScannerKind::Yul)
+				{
+					// reset
+					m = 0;
+					n = 0;
+
+					// Special quoted hex string must follow
+					if (m_char == '"' || m_char == '\'')
+						token = scanString(true);
+					else
+						token = setError(ScannerError::IllegalToken);
+				}
 			}
 			else if (isDecimalDigit(m_char))
 				token = scanNumber();
@@ -690,7 +764,7 @@ void Scanner::scanToken()
 		// whitespace.
 	}
 	while (token == Token::Whitespace);
-	m_tokens[NextNext].location.end = sourcePos();
+	m_tokens[NextNext].location.end = static_cast<int>(sourcePos());
 	m_tokens[NextNext].location.source = m_source;
 	m_tokens[NextNext].token = token;
 	m_tokens[NextNext].extendedTokenInfo = make_tuple(m, n);
@@ -711,12 +785,6 @@ bool Scanner::scanEscape()
 	case '"':  // fall through
 	case '\\':
 		break;
-	case 'b':
-		c = '\b';
-		break;
-	case 'f':
-		c = '\f';
-		break;
 	case 'n':
 		c = '\n';
 		break;
@@ -725,9 +793,6 @@ bool Scanner::scanEscape()
 		break;
 	case 't':
 		c = '\t';
-		break;
-	case 'v':
-		c = '\v';
 		break;
 	case 'u':
 	{
@@ -754,21 +819,21 @@ bool Scanner::isUnicodeLinebreak()
 	if (0x0a <= m_char && m_char <= 0x0d)
 		// line feed, vertical tab, form feed, carriage return
 		return true;
-	else if (!m_source->isPastEndOfInput(1) && uint8_t(m_source->get(0)) == 0xc2 && uint8_t(m_source->get(1)) == 0x85)
+	if (!m_source->isPastEndOfInput(1) && uint8_t(m_source->get(0)) == 0xc2 && uint8_t(m_source->get(1)) == 0x85)
 		// NEL - U+0085, C2 85 in utf8
 		return true;
-	else if (!m_source->isPastEndOfInput(2) && uint8_t(m_source->get(0)) == 0xe2 && uint8_t(m_source->get(1)) == 0x80 && (
+	if (!m_source->isPastEndOfInput(2) && uint8_t(m_source->get(0)) == 0xe2 && uint8_t(m_source->get(1)) == 0x80 && (
 		uint8_t(m_source->get(2)) == 0xa8 || uint8_t(m_source->get(2)) == 0xa9
 	))
 		// LS - U+2028, E2 80 A8  in utf8
 		// PS - U+2029, E2 80 A9  in utf8
 		return true;
-	else
-		return false;
+	return false;
 }
 
-Token Scanner::scanString()
+Token Scanner::scanString(bool const _isUnicode)
 {
+	size_t startPosition = m_source->position();
 	char const quote = m_char;
 	advance();  // consume quote
 	LiteralScope literal(this, LITERAL_TYPE_STRING);
@@ -782,13 +847,31 @@ Token Scanner::scanString()
 				return setError(ScannerError::IllegalEscapeSequence);
 		}
 		else
+		{
+			// Report error on non-printable characters in string literals, however
+			// allow anything for unicode string literals, because their validity will
+			// be verified later (in the syntax checker).
+			//
+			// We are using a manual range and not isprint() to avoid
+			// any potential complications with locale.
+			if (!_isUnicode && (static_cast<unsigned>(c) <= 0x1f || static_cast<unsigned>(c) >= 0x7f))
+				return setError(ScannerError::IllegalCharacterInString);
 			addLiteralChar(c);
+		}
 	}
 	if (m_char != quote)
 		return setError(ScannerError::IllegalStringEndQuote);
+
+	if (_isUnicode)
+	{
+		ScannerError unicodeDirectionError = validateBiDiMarkup(*m_source, startPosition);
+		if (unicodeDirectionError != ScannerError::NoError)
+			return setError(unicodeDirectionError);
+	}
+
 	literal.complete();
 	advance();  // consume quote
-	return Token::StringLiteral;
+	return _isUnicode ? Token::UnicodeStringLiteral : Token::StringLiteral;
 }
 
 Token Scanner::scanHexString()
@@ -940,10 +1023,20 @@ tuple<Token, unsigned, unsigned> Scanner::scanIdentifierOrKeyword()
 	LiteralScope literal(this, LITERAL_TYPE_STRING);
 	addLiteralCharAndAdvance();
 	// Scan the rest of the identifier characters.
-	while (isIdentifierPart(m_char) || (m_char == '.' && m_supportPeriodInIdentifier))
+	while (isIdentifierPart(m_char) || (m_char == '.' && m_kind == ScannerKind::Yul))
 		addLiteralCharAndAdvance();
 	literal.complete();
-	return TokenTraits::fromIdentifierOrKeyword(m_tokens[NextNext].literal);
+	auto const token = TokenTraits::fromIdentifierOrKeyword(m_tokens[NextNext].literal);
+	if (m_kind == ScannerKind::Yul)
+	{
+		// Turn Solidity identifier into a Yul keyword
+		if (m_tokens[NextNext].literal == "leave")
+			return std::make_tuple(Token::Leave, 0, 0);
+		// Turn non-Yul keywords into identifiers.
+		if (!TokenTraits::isYulKeyword(std::get<0>(token)))
+			return std::make_tuple(Token::Identifier, 0, 0);
+	}
+	return token;
 }
 
 } // namespace solidity::langutil

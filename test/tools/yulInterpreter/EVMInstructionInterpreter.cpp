@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * Yul interpreter module that evaluates EVM instructions.
  */
@@ -23,7 +24,7 @@
 #include <test/tools/yulInterpreter/Interpreter.h>
 
 #include <libyul/backends/evm/EVMDialect.h>
-#include <libyul/AsmData.h>
+#include <libyul/AST.h>
 
 #include <libevmasm/Instruction.h>
 
@@ -48,10 +49,10 @@ u256 readZeroExtended(bytes const& _data, u256 const& _offset)
 	if (_offset >= _data.size())
 		return 0;
 	else if (_offset + 32 <= _data.size())
-		return *reinterpret_cast<h256 const*>(_data.data() + size_t(_offset));
+		return *reinterpret_cast<h256 const*>(_data.data() + static_cast<size_t>(_offset));
 	else
 	{
-		size_t off = size_t(_offset);
+		size_t off = static_cast<size_t>(_offset);
 		u256 val;
 		for (size_t i = 0; i < 32; ++i)
 		{
@@ -88,13 +89,13 @@ u256 EVMInstructionInterpreter::eval(
 	using evmasm::Instruction;
 
 	auto info = instructionInfo(_instruction);
-	yulAssert(size_t(info.args) == _arguments.size(), "");
+	yulAssert(static_cast<size_t>(info.args) == _arguments.size(), "");
 
 	auto const& arg = _arguments;
 	switch (_instruction)
 	{
 	case Instruction::STOP:
-		throw ExplicitlyTerminated();
+		BOOST_THROW_EXCEPTION(ExplicitlyTerminated());
 	// --------------- arithmetic ---------------
 	case Instruction::ADD:
 		return arg[0] + arg[1];
@@ -182,7 +183,10 @@ u256 EVMInstructionInterpreter::eval(
 	case Instruction::ADDRESS:
 		return m_state.address;
 	case Instruction::BALANCE:
-		return m_state.balance;
+		if (arg[0] == m_state.address)
+			return m_state.selfbalance;
+		else
+			return m_state.balance;
 	case Instruction::SELFBALANCE:
 		return m_state.selfbalance;
 	case Instruction::ORIGIN:
@@ -300,11 +304,11 @@ u256 EVMInstructionInterpreter::eval(
 	case Instruction::CREATE:
 		accessMemory(arg[1], arg[2]);
 		logTrace(_instruction, arg);
-		return 0xcccccc + arg[1];
+		return u160(0xcccccc + arg[1]);
 	case Instruction::CREATE2:
 		accessMemory(arg[2], arg[3]);
 		logTrace(_instruction, arg);
-		return 0xdddddd + arg[1];
+		return u160(0xdddddd + arg[1]);
 	case Instruction::CALL:
 	case Instruction::CALLCODE:
 		// TODO assign returndata
@@ -324,18 +328,18 @@ u256 EVMInstructionInterpreter::eval(
 		if (accessMemory(arg[0], arg[1]))
 			data = readMemory(arg[0], arg[1]);
 		logTrace(_instruction, arg, data);
-		throw ExplicitlyTerminated();
+		BOOST_THROW_EXCEPTION(ExplicitlyTerminated());
 	}
 	case Instruction::REVERT:
 		accessMemory(arg[0], arg[1]);
 		logTrace(_instruction, arg);
-		throw ExplicitlyTerminated();
+		BOOST_THROW_EXCEPTION(ExplicitlyTerminated());
 	case Instruction::INVALID:
 		logTrace(_instruction);
-		throw ExplicitlyTerminated();
+		BOOST_THROW_EXCEPTION(ExplicitlyTerminated());
 	case Instruction::SELFDESTRUCT:
 		logTrace(_instruction, arg);
-		throw ExplicitlyTerminated();
+		BOOST_THROW_EXCEPTION(ExplicitlyTerminated());
 	case Instruction::POP:
 		break;
 	// --------------- invalid in strict assembly ---------------
@@ -406,17 +410,6 @@ u256 EVMInstructionInterpreter::eval(
 	case Instruction::SWAP14:
 	case Instruction::SWAP15:
 	case Instruction::SWAP16:
-	// --------------- EVM 2.0 ---------------
-	case Instruction::JUMPTO:
-	case Instruction::JUMPIF:
-	case Instruction::JUMPV:
-	case Instruction::JUMPSUB:
-	case Instruction::JUMPSUBV:
-	case Instruction::BEGINSUB:
-	case Instruction::BEGINDATA:
-	case Instruction::RETURNSUB:
-	case Instruction::PUTLOCAL:
-	case Instruction::GETLOCAL:
 	{
 		yulAssert(false, "");
 		return 0;
@@ -426,28 +419,47 @@ u256 EVMInstructionInterpreter::eval(
 	return 0;
 }
 
-u256 EVMInstructionInterpreter::evalBuiltin(BuiltinFunctionForEVM const& _fun, const std::vector<u256>& _arguments)
+u256 EVMInstructionInterpreter::evalBuiltin(
+	BuiltinFunctionForEVM const& _fun,
+	vector<Expression> const& _arguments,
+	vector<u256> const& _evaluatedArguments
+)
 {
 	if (_fun.instruction)
-		return eval(*_fun.instruction, _arguments);
-	else if (_fun.name == "datasize"_yulstring)
-		return u256(keccak256(h256(_arguments.at(0)))) & 0xfff;
-	else if (_fun.name == "dataoffset"_yulstring)
-		return u256(keccak256(h256(_arguments.at(0) + 2))) & 0xfff;
-	else if (_fun.name == "datacopy"_yulstring)
+		return eval(*_fun.instruction, _evaluatedArguments);
+
+	string fun = _fun.name.str();
+	// Evaluate datasize/offset/copy instructions
+	if (fun == "datasize" || fun == "dataoffset")
+	{
+		string arg = std::get<Literal>(_arguments.at(0)).value.str();
+		if (arg.length() < 32)
+			arg.resize(32, 0);
+		if (fun == "datasize")
+			return u256(keccak256(arg)) & 0xfff;
+		else
+		{
+			// Force different value than for datasize
+			arg[31]++;
+			arg[31]++;
+			return u256(keccak256(arg)) & 0xfff;
+		}
+	}
+	else if (fun == "datacopy")
 	{
 		// This is identical to codecopy.
-		if (accessMemory(_arguments.at(0), _arguments.at(2)))
+		if (accessMemory(_evaluatedArguments.at(0), _evaluatedArguments.at(2)))
 			copyZeroExtended(
 				m_state.memory,
 				m_state.code,
-				size_t(_arguments.at(0)),
-				size_t(_arguments.at(1) & size_t(-1)),
-				size_t(_arguments.at(2))
+				size_t(_evaluatedArguments.at(0)),
+				size_t(_evaluatedArguments.at(1) & numeric_limits<size_t>::max()),
+				size_t(_evaluatedArguments.at(2))
 			);
+		return 0;
 	}
 	else
-		yulAssert(false, "Unknown builtin: " + _fun.name.str());
+		yulAssert(false, "Unknown builtin: " + fun);
 	return 0;
 }
 
@@ -504,6 +516,6 @@ void EVMInstructionInterpreter::logTrace(std::string const& _pseudoInstruction, 
 	if (m_state.maxTraceSize > 0 && m_state.trace.size() >= m_state.maxTraceSize)
 	{
 		m_state.trace.emplace_back("Trace size limit reached.");
-		throw TraceLimitReached();
+		BOOST_THROW_EXCEPTION(TraceLimitReached());
 	}
 }

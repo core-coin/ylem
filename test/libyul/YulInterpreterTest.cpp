@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 
 #include <test/libyul/YulInterpreterTest.h>
 
@@ -59,27 +60,7 @@ TestCase::TestResult YulInterpreterTest::run(ostream& _stream, string const& _li
 
 	m_obtainedResult = interpret();
 
-	if (m_expectation != m_obtainedResult)
-	{
-		string nextIndentLevel = _linePrefix + "  ";
-		AnsiColorized(_stream, _formatted, {formatting::BOLD, formatting::CYAN}) << _linePrefix << "Expected result:" << endl;
-		// TODO could compute a simple diff with highlighted lines
-		printIndented(_stream, m_expectation, nextIndentLevel);
-		AnsiColorized(_stream, _formatted, {formatting::BOLD, formatting::CYAN}) << _linePrefix << "Obtained result:" << endl;
-		printIndented(_stream, m_obtainedResult, nextIndentLevel);
-		return TestResult::Failure;
-	}
-	return TestResult::Success;
-}
-
-void YulInterpreterTest::printSource(ostream& _stream, string const& _linePrefix, bool const) const
-{
-	printIndented(_stream, m_source, _linePrefix);
-}
-
-void YulInterpreterTest::printUpdatedExpectations(ostream& _stream, string const& _linePrefix) const
-{
-	printIndented(_stream, m_obtainedResult, _linePrefix);
+	return checkResult(_stream, _linePrefix, _formatted);
 }
 
 bool YulInterpreterTest::parse(ostream& _stream, string const& _linePrefix, bool const _formatted)
@@ -106,12 +87,12 @@ bool YulInterpreterTest::parse(ostream& _stream, string const& _linePrefix, bool
 string YulInterpreterTest::interpret()
 {
 	InterpreterState state;
-	state.maxTraceSize = 10000;
-	state.maxSteps = 10000;
-	Interpreter interpreter(state, EVMDialect::strictAssemblyForEVMObjects(langutil::EVMVersion{}));
+	state.maxTraceSize = 32;
+	state.maxSteps = 512;
+	state.maxExprNesting = 64;
 	try
 	{
-		interpreter(*m_ast);
+		Interpreter::run(state, EVMDialect::strictAssemblyForEVMObjects(langutil::EVMVersion{}), *m_ast);
 	}
 	catch (InterpreterTerminatedGeneric const&)
 	{
@@ -124,7 +105,7 @@ string YulInterpreterTest::interpret()
 
 void YulInterpreterTest::printErrors(ostream& _stream, ErrorList const& _errors)
 {
-	SourceReferenceFormatter formatter(_stream);
+	SourceReferenceFormatter formatter(_stream, true, false);
 
 	for (auto const& error: _errors)
 		formatter.printErrorInformation(*error);

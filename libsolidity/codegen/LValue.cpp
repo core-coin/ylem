@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * @author Christian <c@ethdev.com>
  * @date 2015
@@ -47,7 +48,7 @@ void StackVariable::retrieveValue(SourceLocation const& _location, bool) const
 	unsigned stackPos = m_context.baseToCurrentStackOffset(m_baseStackOffset);
 	if (stackPos + 1 > 16) //@todo correct this by fetching earlier or moving to memory
 		BOOST_THROW_EXCEPTION(
-			CompilerError() <<
+			StackTooDeepError() <<
 			errinfo_sourceLocation(_location) <<
 			errinfo_comment("Stack too deep, try removing local variables.")
 		);
@@ -61,7 +62,7 @@ void StackVariable::storeValue(Type const&, SourceLocation const& _location, boo
 	unsigned stackDiff = m_context.baseToCurrentStackOffset(m_baseStackOffset) - m_size + 1;
 	if (stackDiff > 16)
 		BOOST_THROW_EXCEPTION(
-			CompilerError() <<
+			StackTooDeepError() <<
 			errinfo_sourceLocation(_location) <<
 			errinfo_comment("Stack too deep, try removing local variables.")
 		);
@@ -290,7 +291,7 @@ void StorageItem::storeValue(Type const& _sourceType, SourceLocation const& _loc
 			// stack: value storage_ref multiplier
 			// fetch old value
 			m_context << Instruction::DUP2 << Instruction::SLOAD;
-			// stack: value storege_ref multiplier old_full_value
+			// stack: value storage_ref multiplier old_full_value
 			// clear bytes in old value
 			m_context
 				<< Instruction::DUP2 << ((u256(1) << (8 * m_dataType->storageBytes())) - 1)
@@ -355,39 +356,48 @@ void StorageItem::storeValue(Type const& _sourceType, SourceLocation const& _loc
 				structType.structDefinition() == sourceType.structDefinition(),
 				"Struct assignment with conversion."
 			);
-			solAssert(sourceType.location() != DataLocation::CallData, "Structs in calldata not supported.");
-			for (auto const& member: structType.members(nullptr))
+			solAssert(!structType.containsNestedMapping(), "");
+			if (sourceType.location() == DataLocation::CallData)
 			{
-				// assign each member that can live outside of storage
-				TypePointer const& memberType = member.type;
-				if (!memberType->canLiveOutsideStorage())
-					continue;
-				TypePointer sourceMemberType = sourceType.memberType(member.name);
-				if (sourceType.location() == DataLocation::Storage)
+				solAssert(sourceType.sizeOnStack() == 1, "");
+				solAssert(structType.sizeOnStack() == 1, "");
+				m_context << Instruction::DUP2 << Instruction::DUP2;
+				m_context.callYulFunction(m_context.utilFunctions().updateStorageValueFunction(sourceType, structType, 0), 2, 0);
+			}
+			else
+			{
+				for (auto const& member: structType.members(nullptr))
 				{
-					// stack layout: source_ref target_ref
-					pair<u256, unsigned> const& offsets = sourceType.storageOffsetsOfMember(member.name);
-					m_context << offsets.first << Instruction::DUP3 << Instruction::ADD;
+					// assign each member that can live outside of storage
+					Type const* memberType = member.type;
+					solAssert(memberType->nameable(), "");
+					Type const* sourceMemberType = sourceType.memberType(member.name);
+					if (sourceType.location() == DataLocation::Storage)
+					{
+						// stack layout: source_ref target_ref
+						pair<u256, unsigned> const& offsets = sourceType.storageOffsetsOfMember(member.name);
+						m_context << offsets.first << Instruction::DUP3 << Instruction::ADD;
+						m_context << u256(offsets.second);
+						// stack: source_ref target_ref source_member_ref source_member_off
+						StorageItem(m_context, *sourceMemberType).retrieveValue(_location, true);
+						// stack: source_ref target_ref source_value...
+					}
+					else
+					{
+						solAssert(sourceType.location() == DataLocation::Memory, "");
+						// stack layout: source_ref target_ref
+						m_context << sourceType.memoryOffsetOfMember(member.name);
+						m_context << Instruction::DUP3 << Instruction::ADD;
+						MemoryItem(m_context, *sourceMemberType).retrieveValue(_location, true);
+						// stack layout: source_ref target_ref source_value...
+					}
+					unsigned stackSize = sourceMemberType->sizeOnStack();
+					pair<u256, unsigned> const& offsets = structType.storageOffsetsOfMember(member.name);
+					m_context << dupInstruction(1 + stackSize) << offsets.first << Instruction::ADD;
 					m_context << u256(offsets.second);
-					// stack: source_ref target_ref source_member_ref source_member_off
-					StorageItem(m_context, *sourceMemberType).retrieveValue(_location, true);
-					// stack: source_ref target_ref source_value...
+					// stack: source_ref target_ref target_off source_value... target_member_ref target_member_byte_off
+					StorageItem(m_context, *memberType).storeValue(*sourceMemberType, _location, true);
 				}
-				else
-				{
-					solAssert(sourceType.location() == DataLocation::Memory, "");
-					// stack layout: source_ref target_ref
-					m_context << sourceType.memoryOffsetOfMember(member.name);
-					m_context << Instruction::DUP3 << Instruction::ADD;
-					MemoryItem(m_context, *sourceMemberType).retrieveValue(_location, true);
-					// stack layout: source_ref target_ref source_value...
-				}
-				unsigned stackSize = sourceMemberType->sizeOnStack();
-				pair<u256, unsigned> const& offsets = structType.storageOffsetsOfMember(member.name);
-				m_context << dupInstruction(1 + stackSize) << offsets.first << Instruction::ADD;
-				m_context << u256(offsets.second);
-				// stack: source_ref target_ref target_off source_value... target_member_ref target_member_byte_off
-				StorageItem(m_context, *memberType).storeValue(*sourceMemberType, _location, true);
 			}
 			// stack layout: source_ref target_ref
 			solAssert(sourceType.sizeOnStack() == 1, "Unexpected source size.");
@@ -421,7 +431,7 @@ void StorageItem::setToZero(SourceLocation const&, bool _removeReference) const
 		for (auto const& member: structType.members(nullptr))
 		{
 			// zero each member that is not a mapping
-			TypePointer const& memberType = member.type;
+			Type const* memberType = member.type;
 			if (memberType->category() == Type::Category::Mapping)
 				continue;
 			pair<u256, unsigned> const& offsets = structType.storageOffsetsOfMember(member.name);
@@ -451,7 +461,7 @@ void StorageItem::setToZero(SourceLocation const&, bool _removeReference) const
 			// stack: storage_ref multiplier
 			// fetch old value
 			m_context << Instruction::DUP2 << Instruction::SLOAD;
-			// stack: storege_ref multiplier old_full_value
+			// stack: storage_ref multiplier old_full_value
 			// clear bytes in old value
 			m_context
 				<< Instruction::SWAP1 << ((u256(1) << (8 * m_dataType->storageBytes())) - 1)
@@ -548,7 +558,7 @@ void TupleObject::storeValue(Type const& _sourceType, SourceLocation const& _loc
 	for (size_t i = 0; i < m_lvalues.size(); ++i)
 	{
 		unique_ptr<LValue> const& lvalue = m_lvalues[m_lvalues.size() - i - 1];
-		TypePointer const& valType = valueTypes[valueTypes.size() - i - 1];
+		Type const* valType = valueTypes[valueTypes.size() - i - 1];
 		unsigned stackHeight = m_context.stackHeight();
 		solAssert(!valType == !lvalue, "");
 		if (!lvalue)

@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * @author Alex Beregszaszi
  * @date 2017
@@ -40,11 +41,11 @@ struct OptimiserSettings
 
 			// should have good "compilability" property here.
 
-			"eul"                      // Run functional expression inliner
+			"Tpeul"                    // Run functional expression inliner
 			"xarulrul"                 // Prune a bit more in SSA
 			"xarrcL"                   // Turn into SSA again and simplify
 			"gvif"                     // Run full inliner
-			"CTUcarrLsTOtfDncarrIulc"  // SSA plus simplify
+			"CTUcarrLsTFOtfDncarrIulc" // SSA plus simplify
 		"]"
 		"jmuljuljul VcTOcul jmul";     // Make source short and pretty
 
@@ -66,6 +67,7 @@ struct OptimiserSettings
 	{
 		OptimiserSettings s;
 		s.runOrderLiterals = true;
+		s.runInliner = true;
 		s.runJumpdestRemover = true;
 		s.runPeephole = true;
 		s.runDeduplicate = true;
@@ -86,6 +88,7 @@ struct OptimiserSettings
 	{
 		return
 			runOrderLiterals == _other.runOrderLiterals &&
+			runInliner == _other.runInliner &&
 			runJumpdestRemover == _other.runJumpdestRemover &&
 			runPeephole == _other.runPeephole &&
 			runDeduplicate == _other.runDeduplicate &&
@@ -100,6 +103,8 @@ struct OptimiserSettings
 	/// Move literals to the right of commutative binary operators during code generation.
 	/// This helps exploiting associativity.
 	bool runOrderLiterals = false;
+	/// Inliner
+	bool runInliner = false;
 	/// Non-referenced jump destination remover.
 	bool runJumpdestRemover = false;
 	/// Peephole optimizer

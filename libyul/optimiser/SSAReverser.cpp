@@ -14,9 +14,10 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 #include <libyul/optimiser/SSAReverser.h>
 #include <libyul/optimiser/Metrics.h>
-#include <libyul/AsmData.h>
+#include <libyul/AST.h>
 #include <libsolutil/CommonData.h>
 
 #include <variant>
@@ -72,7 +73,7 @@ void SSAReverser::operator()(Block& _block)
 							VariableDeclaration{
 								std::move(varDecl->location),
 								std::move(varDecl->variables),
-								std::make_unique<Expression>(std::move(assignment->variableNames.front()))
+								std::make_unique<Expression>(assignment->variableNames.front())
 							}
 						);
 				}

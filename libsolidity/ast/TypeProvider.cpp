@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 
 #include <libsolidity/ast/AST.h>
 #include <libsolidity/ast/TypeProvider.h>
@@ -258,7 +259,7 @@ Type const* TypeProvider::fromElementaryTypeName(ElementaryTypeNameToken const& 
 	}
 }
 
-TypePointer TypeProvider::fromElementaryTypeName(string const& _name)
+Type const* TypeProvider::fromElementaryTypeName(string const& _name)
 {
 	vector<string> nameParts;
 	boost::split(nameParts, _name, boost::is_any_of(" "));
@@ -338,7 +339,7 @@ ArrayType const* TypeProvider::stringMemory()
 	return m_stringMemory.get();
 }
 
-TypePointer TypeProvider::forLiteral(Literal const& _literal)
+Type const* TypeProvider::forLiteral(Literal const& _literal)
 {
 	switch (_literal.token())
 	{
@@ -348,6 +349,7 @@ TypePointer TypeProvider::forLiteral(Literal const& _literal)
 	case Token::Number:
 		return rationalNumber(_literal);
 	case Token::StringLiteral:
+	case Token::UnicodeStringLiteral:
 	case Token::HexStringLiteral:
 		return stringLiteral(_literal.value());
 	default:
@@ -361,12 +363,12 @@ RationalNumberType const* TypeProvider::rationalNumber(Literal const& _literal)
 	std::tuple<bool, rational> validLiteral = RationalNumberType::isValidLiteral(_literal);
 	if (std::get<0>(validLiteral))
 	{
-		TypePointer compatibleBytesType = nullptr;
+		Type const* compatibleBytesType = nullptr;
 		if (_literal.isHexNumber())
 		{
 			size_t const digitCount = _literal.valueWithoutUnderscores().length() - 2;
 			if (digitCount % 2 == 0 && (digitCount / 2) <= 32)
-				compatibleBytesType = fixedBytes(digitCount / 2);
+				compatibleBytesType = fixedBytes(static_cast<unsigned>(digitCount / 2));
 		}
 
 		return rationalNumber(std::get<1>(validLiteral), compatibleBytesType);
@@ -425,6 +427,11 @@ FunctionType const* TypeProvider::function(VariableDeclaration const& _varDecl)
 }
 
 FunctionType const* TypeProvider::function(EventDefinition const& _def)
+{
+	return createAndGet<FunctionType>(_def);
+}
+
+FunctionType const* TypeProvider::function(ErrorDefinition const& _def)
 {
 	return createAndGet<FunctionType>(_def);
 }

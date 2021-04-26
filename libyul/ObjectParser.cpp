@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * Parser for Yul code and data object container.
  */
@@ -21,6 +22,7 @@
 #include <libyul/ObjectParser.h>
 
 #include <libyul/AsmParser.h>
+#include <libyul/AST.h>
 #include <libyul/Exceptions.h>
 
 #include <liblangutil/Token.h>

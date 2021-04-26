@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * Optimisation stage that replaces expressions of type ``sload(x)`` by the value
  * currently stored in storage, if known.
@@ -23,13 +24,9 @@
 
 #include <libyul/optimiser/DataFlowAnalyzer.h>
 #include <libyul/optimiser/OptimiserStep.h>
-#include <libevmasm/Instruction.h>
 
 namespace solidity::yul
 {
-
-struct EVMDialect;
-struct BuiltinFunctionForEVM;
 
 /**
  * Optimisation stage that replaces expressions of type ``sload(x)`` and ``mload(x)`` by the value
@@ -62,7 +59,7 @@ protected:
 
 	void tryResolve(
 		Expression& _e,
-		evmasm::Instruction _instruction,
+		StoreLoadLocation _location,
 		std::vector<Expression> const& _arguments
 	);
 

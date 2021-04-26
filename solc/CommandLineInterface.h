@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * @author Lefteris <lefteris@ethdev.com>
  * @date 2014
@@ -23,6 +24,8 @@
 
 #include <libsolidity/interface/CompilerStack.h>
 #include <libsolidity/interface/DebugSettings.h>
+#include <libsolidity/interface/FileReader.h>
+#include <libsolidity/interface/ImportRemapper.h>
 #include <libyul/AssemblyStack.h>
 #include <liblangutil/EVMVersion.h>
 
@@ -66,7 +69,7 @@ private:
 	void outputCompilationResults();
 
 	void handleCombinedJSON();
-	void handleAst(std::string const& _argStr);
+	void handleAst();
 	void handleBinary(std::string const& _contract);
 	void handleOpcode(std::string const& _contract);
 	void handleIR(std::string const& _contract);
@@ -78,7 +81,6 @@ private:
 	void handleABI(std::string const& _contract);
 	void handleNatspec(bool _natspecDev, std::string const& _contract);
 	void handleGasEstimation(std::string const& _contract);
-	void handleFormal();
 	void handleStorageLayout(std::string const& _contract);
 
 	/// Fills @a m_sourceCodes initially and @a m_redirects.
@@ -103,32 +105,38 @@ private:
 	/// @arg _json json string to be written
 	void createJson(std::string const& _fileName, std::string const& _json);
 
+	size_t countEnabledOptions(std::vector<std::string> const& _optionNames) const;
+	static std::string joinOptionNames(std::vector<std::string> const& _optionNames, std::string _separator = ", ");
+
 	bool m_error = false; ///< If true, some error occurred.
 
 	bool m_onlyAssemble = false;
 
 	bool m_onlyLink = false;
 
+	FileReader m_fileReader;
+
 	/// Compiler arguments variable map
 	boost::program_options::variables_map m_args;
-	/// map of input files to source code strings
-	std::map<std::string, std::string> m_sourceCodes;
 	/// list of remappings
-	std::vector<frontend::CompilerStack::Remapping> m_remappings;
-	/// list of allowed directories to read files from
-	std::vector<boost::filesystem::path> m_allowedDirectories;
+	std::vector<ImportRemapper::Remapping> m_remappings;
 	/// map of library names to addresses
 	std::map<std::string, util::h160> m_libraries;
 	/// Solidity compiler stack
 	std::unique_ptr<frontend::CompilerStack> m_compiler;
+	CompilerStack::State m_stopAfter = CompilerStack::State::CompilationSuccessful;
 	/// EVM version to use
 	langutil::EVMVersion m_evmVersion;
 	/// How to handle revert strings
 	RevertStrings m_revertStrings = RevertStrings::Default;
 	/// Chosen hash method for the bytecode metadata.
 	CompilerStack::MetadataHash m_metadataHash = CompilerStack::MetadataHash::IPFS;
+	/// Model checker settings.
+	ModelCheckerSettings m_modelCheckerSettings;
 	/// Whether or not to colorize diagnostics output.
 	bool m_coloredOutput = true;
+	/// Whether or not to output error IDs.
+	bool m_withErrorIds = false;
 };
 
 }

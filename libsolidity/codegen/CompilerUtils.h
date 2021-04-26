@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * @author Christian <c@ethdev.com>
  * @date 2014
@@ -68,6 +69,12 @@ public:
 	/// Stack post:
 	void revertWithStringData(Type const& _argumentType);
 
+	void revertWithError(
+		std::string const& _errorName,
+		std::vector<Type const*> const& _parameterTypes,
+		std::vector<Type const*> const& _argumentTypes
+	);
+
 	/// Allocates a new array and copies the return data to it.
 	/// If the EVM does not support return data, creates an empty array.
 	void returnDataToArray();
@@ -103,14 +110,16 @@ public:
 	/// Stores a 256 bit integer from stack in memory.
 	/// @param _offset offset in memory
 	void storeInMemory(unsigned _offset);
+
 	/// Dynamic version of @see storeInMemory, expects the memory offset below the value on the stack
 	/// and also updates that. For reference types, only copies the data pointer. Fails for
-	/// non-memory-references.
+	/// non-memory-references. For string literals no value is available on the stack.
 	/// @param _padToWords if true, adds zeros to pad to multiple of 32 bytes. Array elements
-	/// are always padded (except for byte arrays), regardless of this parameter.
+	///                    are always padded (except for byte arrays), regardless of this parameter.
+	/// @param _cleanup if true, adds code to cleanup the value before storing it.
 	/// Stack pre: memory_offset value...
 	/// Stack post: (memory_offset+length)
-	void storeInMemoryDynamic(Type const& _type, bool _padToWords = true);
+	void storeInMemoryDynamic(Type const& _type, bool _padToWords = true, bool _cleanup = true);
 
 	/// Creates code that unpacks the arguments according to their types specified by a vector of TypePointers.
 	/// From memory if @a _fromMemory is true, otherwise from call data.
@@ -309,7 +318,8 @@ private:
 	void cleanHigherOrderBits(IntegerType const& _typeOnStack);
 
 	/// Prepares the given type for storing in memory by shifting it if necessary.
-	unsigned prepareMemoryStore(Type const& _type, bool _padToWords);
+	/// @param _cleanup if true, also cleanup the value when preparing to store it in memory
+	unsigned prepareMemoryStore(Type const& _type, bool _padToWords, bool _cleanup = true);
 	/// Loads type from memory assuming memory offset is on stack top.
 	unsigned loadFromMemoryHelper(Type const& _type, bool _fromCalldata, bool _padToWords);
 

@@ -14,14 +14,16 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 
 #include <test/TestCaseReader.h>
 
 #include <libsolutil/StringUtils.h>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/range/adaptor/map.hpp>
 #include <boost/throw_exception.hpp>
+
+#include <range/v3/view/map.hpp>
 
 using namespace std;
 using namespace solidity::frontend::test;
@@ -37,11 +39,18 @@ TestCaseReader::TestCaseReader(string const& _filename):
 	m_unreadSettings = m_settings;
 }
 
-string const& TestCaseReader::source()
+TestCaseReader::TestCaseReader(istringstream const& _str)
 {
-	if (m_sources.size() != 1)
+	tie(m_sources, m_lineNumber) = parseSourcesAndSettingsWithLineNumber(
+		static_cast<istream&>(const_cast<istringstream&>(_str))
+	);
+}
+
+string const& TestCaseReader::source() const
+{
+	if (m_sources.sources.size() != 1)
 		BOOST_THROW_EXCEPTION(runtime_error("Expected single source definition, but got multiple sources."));
-	return m_sources.begin()->second;
+	return m_sources.sources.at(m_sources.mainSourceFile);
 }
 
 string TestCaseReader::simpleExpectations()
@@ -87,13 +96,13 @@ string TestCaseReader::stringSetting(string const& _name, string const& _default
 void TestCaseReader::ensureAllSettingsRead() const
 {
 	if (!m_unreadSettings.empty())
-		throw runtime_error(
+		BOOST_THROW_EXCEPTION(runtime_error(
 			"Unknown setting(s): " +
-			util::joinHumanReadable(m_unreadSettings | boost::adaptors::map_keys)
-		);
+			util::joinHumanReadable(m_unreadSettings | ranges::views::keys)
+		));
 }
 
-pair<map<string, string>, size_t> TestCaseReader::parseSourcesAndSettingsWithLineNumber(istream& _stream)
+pair<SourceMap, size_t> TestCaseReader::parseSourcesAndSettingsWithLineNumber(istream& _stream)
 {
 	map<string, string> sources;
 	string currentSourceName;
@@ -126,7 +135,7 @@ pair<map<string, string>, size_t> TestCaseReader::parseSourcesAndSettingsWithLin
 					line.size() - sourceDelimiterEnd.size() - sourceDelimiterStart.size()
 				));
 				if (sources.count(currentSourceName))
-					throw runtime_error("Multiple definitions of test source \"" + currentSourceName + "\".");
+					BOOST_THROW_EXCEPTION(runtime_error("Multiple definitions of test source \"" + currentSourceName + "\"."));
 			}
 			else
 				currentSource += line + "\n";
@@ -135,7 +144,7 @@ pair<map<string, string>, size_t> TestCaseReader::parseSourcesAndSettingsWithLin
 		{
 			size_t colon = line.find(':');
 			if (colon == string::npos)
-				throw runtime_error(string("Expected \":\" inside setting."));
+				BOOST_THROW_EXCEPTION(runtime_error(string("Expected \":\" inside setting.")));
 			string key = line.substr(comment.size(), colon - comment.size());
 			string value = line.substr(colon + 1);
 			boost::algorithm::trim(key);
@@ -143,10 +152,11 @@ pair<map<string, string>, size_t> TestCaseReader::parseSourcesAndSettingsWithLin
 			m_settings[key] = value;
 		}
 		else
-			throw runtime_error(string("Expected \"//\" or \"// ---\" to terminate settings and source."));
+			BOOST_THROW_EXCEPTION(runtime_error(string("Expected \"//\" or \"// ---\" to terminate settings and source.")));
 	}
+	// Register the last source as the main one
 	sources[currentSourceName] = currentSource;
-	return { sources, lineNumber };
+	return {{move(sources), move(currentSourceName)}, lineNumber};
 }
 
 string TestCaseReader::parseSimpleExpectations(istream& _file)

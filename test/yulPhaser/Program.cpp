@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 
 #include <test/yulPhaser/TestHelpers.h>
 
@@ -23,7 +24,6 @@
 #include <libyul/optimiser/BlockFlattener.h>
 #include <libyul/optimiser/Metrics.h>
 #include <libyul/optimiser/StructuralSimplifier.h>
-#include <libyul/AsmData.h>
 
 #include <libsolutil/CommonIO.h>
 #include <libsolutil/JSON.h>
@@ -57,7 +57,7 @@ namespace
 namespace solidity::phaser::test
 {
 
-BOOST_AUTO_TEST_SUITE(Phaser)
+BOOST_AUTO_TEST_SUITE(Phaser, *boost::unit_test::label("nooptions"))
 BOOST_AUTO_TEST_SUITE(ProgramTest)
 
 BOOST_AUTO_TEST_CASE(copy_constructor_should_make_deep_copy_of_ast)

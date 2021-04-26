@@ -14,12 +14,13 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 #include <tools/solidityUpgrade/Upgrade060.h>
 #include <tools/solidityUpgrade/SourceTransform.h>
 
 #include <libsolidity/analysis/OverrideChecker.h>
 
-#include <libyul/AsmData.h>
+#include <libyul/AST.h>
 
 #include <regex>
 
@@ -99,7 +100,7 @@ inline string appendVirtual(FunctionDefinition const& _function)
 
 void AbstractContract::endVisit(ContractDefinition const& _contract)
 {
-	bool isFullyImplemented = _contract.annotation().unimplementedDeclarations.empty();
+	bool isFullyImplemented = _contract.annotation().unimplementedDeclarations->empty();
 
 	if (
 		!isFullyImplemented &&

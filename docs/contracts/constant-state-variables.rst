@@ -1,5 +1,7 @@
 .. index:: ! constant
 
+.. _constants:
+
 **************************************
 Constant and Immutable State Variables
 **************************************
@@ -9,26 +11,37 @@ In both cases, the variables cannot be modified after the contract has been cons
 For ``constant`` variables, the value has to be fixed at compile-time, while
 for ``immutable``, it can still be assigned at construction time.
 
+It is also possible to define ``constant`` variables at the file level.
+
 The compiler does not reserve a storage slot for these variables, and every occurrence is
 replaced by the respective value.
 
+Compared to regular state variables, the gas costs of constant and immutable variables
+are much lower. For a constant variable, the expression assigned to it is copied to
+all the places where it is accessed and also re-evaluated each time. This allows for local
+optimizations. Immutable variables are evaluated once at construction time and their value
+is copied to all the places in the code where they are accessed. For these values,
+32 bytes are reserved, even if they would fit in fewer bytes. Due to this, constant values
+can sometimes be cheaper than immutable values.
+
 Not all types for constants and immutables are implemented at this time. The only supported types are
-`strings <strings>`_ (only for constants) and `value types <value-types>`_.
+:ref:`strings <strings>` (only for constants) and :ref:`value types <value-types>`.
 
 ::
 
     // SPDX-License-Identifier: GPL-3.0
-    pragma solidity >0.6.4 <0.7.0;
+    pragma solidity >=0.7.4;
+
+    uint constant X = 32**22 + 8;
 
     contract C {
-        uint constant X = 32**22 + 8;
         string constant TEXT = "abc";
         bytes32 constant MY_HASH = keccak256("abc");
         uint immutable decimals;
         uint immutable maxBalance;
         address immutable owner = msg.sender;
 
-        constructor(uint _decimals, address _reference) public {
+        constructor(uint _decimals, address _reference) {
             decimals = _decimals;
             // Assignments to immutables can even access the environment.
             maxBalance = _reference.balance;
@@ -45,7 +58,7 @@ Constant
 
 For ``constant`` variables, the value has to be a constant at compile time and it has to be
 assigned where the variable is declared. Any expression
-that accesses storage, blockchain data (e.g. ``now``, ``address(this).balance`` or
+that accesses storage, blockchain data (e.g. ``block.timestamp``, ``address(this).balance`` or
 ``block.number``) or
 execution data (``msg.value`` or ``gasleft()``) or makes calls to external contracts is disallowed. Expressions
 that might have a side-effect on memory allocation are allowed, but those that

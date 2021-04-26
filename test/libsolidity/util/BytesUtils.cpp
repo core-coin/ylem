@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 
 #include <test/libsolidity/util/BytesUtils.h>
 
@@ -22,6 +23,7 @@
 
 #include <liblangutil/Common.h>
 
+#include <libsolutil/CommonData.h>
 #include <libsolutil/StringUtils.h>
 
 #include <boost/algorithm/string.hpp>
@@ -34,11 +36,9 @@
 
 using namespace solidity;
 using namespace solidity::util;
-using namespace solidity::langutil;
 using namespace solidity::frontend;
 using namespace solidity::frontend::test;
 using namespace std;
-using namespace soltest;
 
 bytes BytesUtils::alignLeft(bytes _bytes)
 {
@@ -81,7 +81,7 @@ bytes BytesUtils::convertBoolean(string const& _literal)
 	else if (_literal == "false")
 		return bytes{false};
 	else
-		throw Error(Error::Type::ParserError, "Boolean literal invalid.");
+		BOOST_THROW_EXCEPTION(TestParserError("Boolean literal invalid."));
 }
 
 bytes BytesUtils::convertNumber(string const& _literal)
@@ -92,7 +92,7 @@ bytes BytesUtils::convertNumber(string const& _literal)
 	}
 	catch (std::exception const&)
 	{
-		throw Error(Error::Type::ParserError, "Number encoding invalid.");
+		BOOST_THROW_EXCEPTION(TestParserError("Number encoding invalid."));
 	}
 }
 
@@ -104,7 +104,7 @@ bytes BytesUtils::convertHexNumber(string const& _literal)
 	}
 	catch (std::exception const&)
 	{
-		throw Error(Error::Type::ParserError, "Hex number encoding invalid.");
+		BOOST_THROW_EXCEPTION(TestParserError("Hex number encoding invalid."));
 	}
 }
 
@@ -116,7 +116,7 @@ bytes BytesUtils::convertString(string const& _literal)
 	}
 	catch (std::exception const&)
 	{
-		throw Error(Error::Type::ParserError, "String encoding invalid.");
+		BOOST_THROW_EXCEPTION(TestParserError("String encoding invalid."));
 	}
 }
 
@@ -198,8 +198,7 @@ string BytesUtils::formatString(bytes const& _bytes, size_t _cutOff)
 				if (isprint(v))
 					os << v;
 				else
-					os << "\\x" << setw(2) << setfill('0') << hex << v;
-
+					os << "\\x" << toHex(v);
 		}
 	}
 	os << "\"";
@@ -217,7 +216,7 @@ string BytesUtils::formatRawBytes(
 	auto it = _bytes.begin();
 
 	if (_bytes.size() != ContractABIUtils::encodingSize(_parameters))
-		parameters = ContractABIUtils::defaultParameters(ceil(_bytes.size() / 32));
+		parameters = ContractABIUtils::defaultParameters((_bytes.size() + 31) / 32);
 	else
 		parameters = _parameters;
 
@@ -265,13 +264,13 @@ string BytesUtils::formatBytes(
 			{
 				auto entropy = [](std::string const& str) -> double {
 					double result = 0;
-					map<char, int> frequencies;
+					map<char, double> frequencies;
 					for (char c: str)
 						frequencies[c]++;
 					for (auto p: frequencies)
 					{
-						double freq = static_cast<double>(p.second) / str.length();
-						result -= freq * (log(freq) / log(2));
+						double freq = p.second / double(str.length());
+						result -= freq * (log(freq) / log(2.0));
 					}
 					return result;
 				};
@@ -319,7 +318,7 @@ string BytesUtils::formatBytesRange(
 	auto it = _bytes.begin();
 
 	if (_bytes.size() != ContractABIUtils::encodingSize(_parameters))
-		parameters = ContractABIUtils::defaultParameters(ceil(_bytes.size() / 32));
+		parameters = ContractABIUtils::defaultParameters((_bytes.size() + 31) / 32);
 	else
 		parameters = _parameters;
 
@@ -348,10 +347,10 @@ string BytesUtils::formatBytesRange(
 
 size_t BytesUtils::countRightPaddedZeros(bytes const& _bytes)
 {
-	return find_if(
+	return static_cast<size_t>(find_if(
 		_bytes.rbegin(),
 		_bytes.rend(),
 		[](uint8_t b) { return b != '\0'; }
-	) - _bytes.rbegin();
+	) - _bytes.rbegin());
 }
 

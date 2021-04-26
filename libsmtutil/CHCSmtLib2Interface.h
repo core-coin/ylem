@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 
 /**
  * Interface for solving Horn systems via smtlib2.
@@ -32,8 +33,9 @@ class CHCSmtLib2Interface: public CHCSolverInterface
 {
 public:
 	explicit CHCSmtLib2Interface(
-		std::map<util::h256, std::string> const& _queryResponses,
-		frontend::ReadCallback::Callback const& _smtCallback
+		std::map<util::h256, std::string> const& _queryResponses = {},
+		frontend::ReadCallback::Callback _smtCallback = {},
+		std::optional<unsigned> _queryTimeout = {}
 	);
 
 	void reset();
@@ -42,7 +44,7 @@ public:
 
 	void addRule(Expression const& _expr, std::string const& _name) override;
 
-	std::pair<CheckResult, std::vector<std::string>> query(Expression const& _expr) override;
+	std::pair<CheckResult, CexGraph> query(Expression const& _expr) override;
 
 	void declareVariable(std::string const& _name, SortPointer const& _sort) override;
 

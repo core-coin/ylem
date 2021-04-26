@@ -25,16 +25,16 @@ set -ev
 keyid=70D110489D66E2F6
 email=builds@ethereum.org
 packagename=libz3-static-dev
-version=4.8.8
+version=4.8.10
 
-DISTRIBUTIONS="bionic eoan focal"
+DISTRIBUTIONS="focal groovy"
 
 for distribution in $DISTRIBUTIONS
 do
 cd /tmp/
-rm -rf $distribution
-mkdir $distribution
-cd $distribution
+rm -rf "$distribution"
+mkdir "$distribution"
+cd "$distribution"
 
 pparepo=cpp-build-deps
 ppafilesurl=https://launchpad.net/~ethereum/+archive/ubuntu/${pparepo}/+files
@@ -80,7 +80,9 @@ Vcs-Browser: https://github.com/Z3Prover/z3
 
 Package: libz3-static-dev
 Section: libdevel
-Architecture: any-i386 any-amd64
+Architecture: any-amd64
+Breaks: libz3-dev
+Replaces: libz3-dev
 Multi-Arch: same
 Depends: \${shlibs:Depends}, \${misc:Depends}
 Description: theorem prover from Microsoft Research - development files (static library)
@@ -188,7 +190,7 @@ echo "3.0 (quilt)" > debian/source/format
 chmod +x debian/rules
 
 versionsuffix=1ubuntu0~${distribution}
-EMAIL="$email" dch -v 1:${debversion}-${versionsuffix} "build of ${version}"
+EMAIL="$email" dch -v "1:${debversion}-${versionsuffix}" "build of ${version}"
 
 # build source package
 # If packages is rejected because original source is already present, add
@@ -197,13 +199,14 @@ EMAIL="$email" dch -v 1:${debversion}-${versionsuffix} "build of ${version}"
 debuild -S -d -sa -us -uc
 
 # prepare .changes file for Launchpad
-sed -i -e s/UNRELEASED/${distribution}/ -e s/urgency=medium/urgency=low/ ../*.changes
+sed -i -e "s/UNRELEASED/${distribution}/" -e s/urgency=medium/urgency=low/ ../*.changes
 
 # check if ubuntu already has the source tarball
 (
 cd ..
-orig=${packagename}_${debversion}.orig.tar.gz
-orig_size=$(ls -l $orig | cut -d ' ' -f 5)
+orig="${packagename}_${debversion}.orig.tar.gz"
+# shellcheck disable=SC2012
+orig_size=$(ls -l "$orig" | cut -d ' ' -f 5)
 orig_sha1=$(sha1sum $orig | cut -d ' ' -f 1)
 orig_sha256=$(sha256sum $orig | cut -d ' ' -f 1)
 orig_md5=$(md5sum $orig | cut -d ' ' -f 1)
@@ -212,19 +215,20 @@ if wget --quiet -O $orig-tmp "$ppafilesurl/$orig"
 then
     echo "[WARN] Original tarball found in Ubuntu archive, using it instead"
     mv $orig-tmp $orig
-    new_size=$(ls -l *.orig.tar.gz | cut -d ' ' -f 5)
+    # shellcheck disable=SC2012
+    new_size=$(ls -l ./*.orig.tar.gz | cut -d ' ' -f 5)
     new_sha1=$(sha1sum $orig | cut -d ' ' -f 1)
     new_sha256=$(sha256sum $orig | cut -d ' ' -f 1)
     new_md5=$(md5sum $orig | cut -d ' ' -f 1)
-    sed -i -e s,$orig_sha1,$new_sha1,g -e s,$orig_sha256,$new_sha256,g -e s,$orig_size,$new_size,g -e s,$orig_md5,$new_md5,g *.dsc
-    sed -i -e s,$orig_sha1,$new_sha1,g -e s,$orig_sha256,$new_sha256,g -e s,$orig_size,$new_size,g -e s,$orig_md5,$new_md5,g *.changes
+    sed -i -e "s,$orig_sha1,$new_sha1,g" -e "s,$orig_sha256,$new_sha256,g" -e "s,$orig_size,$new_size,g" -e "s,$orig_md5,$new_md5,g" ./*.dsc
+    sed -i -e "s,$orig_sha1,$new_sha1,g" -e "s,$orig_sha256,$new_sha256,g" -e "s,$orig_size,$new_size,g" -e "s,$orig_md5,$new_md5,g" ./*.changes
 fi
 )
 
 # sign the package
-debsign --re-sign -k ${keyid} ../${packagename}_${debversion}-${versionsuffix}_source.changes
+debsign --re-sign -k "${keyid}" "../${packagename}_${debversion}-${versionsuffix}_source.changes"
 
 # upload
-dput ${pparepo} ../${packagename}_${debversion}-${versionsuffix}_source.changes
+dput "${pparepo}" "../${packagename}_${debversion}-${versionsuffix}_source.changes"
 
 done

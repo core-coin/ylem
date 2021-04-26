@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /** @file UTF8.h
  * @author Alex Beregszaszi
  * @date 2016
@@ -37,7 +38,5 @@ inline bool validateUTF8(std::string const& _input)
 	size_t invalidPos;
 	return validateUTF8(_input, invalidPos);
 }
-
-size_t numCodepoints(std::string const& _utf8EncodedInput);
 
 }

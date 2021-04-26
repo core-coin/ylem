@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * Assembly interface for EVM and EVM1.5.
  */
@@ -52,7 +53,7 @@ void EVMAssembly::appendInstruction(evmasm::Instruction _instr)
 void EVMAssembly::appendConstant(u256 const& _constant)
 {
 	bytes data = toCompactBigEndian(_constant, 1);
-	appendInstruction(evmasm::pushInstruction(data.size()));
+	appendInstruction(evmasm::pushInstruction(static_cast<unsigned>(data.size())));
 	m_bytecode += data;
 }
 
@@ -64,7 +65,6 @@ void EVMAssembly::appendLabel(LabelID _labelId)
 
 void EVMAssembly::appendLabelReference(LabelID _labelId)
 {
-	yulAssert(!m_evm15, "Cannot use plain label references in EMV1.5 mode.");
 	// @TODO we now always use labelReferenceSize for all labels, it could be shortened
 	// for some of them.
 	appendInstruction(evmasm::pushInstruction(labelReferenceSize));
@@ -74,7 +74,7 @@ void EVMAssembly::appendLabelReference(LabelID _labelId)
 
 EVMAssembly::LabelID EVMAssembly::newLabelId()
 {
-	m_labelPositions[m_nextLabelId] = size_t(-1);
+	m_labelPositions[m_nextLabelId] = numeric_limits<size_t>::max();
 	return m_nextLabelId++;
 }
 
@@ -91,71 +91,27 @@ void EVMAssembly::appendLinkerSymbol(string const&)
 	yulAssert(false, "Linker symbols not yet implemented.");
 }
 
-void EVMAssembly::appendJump(int _stackDiffAfter)
+void EVMAssembly::appendJump(int _stackDiffAfter, JumpType)
 {
-	yulAssert(!m_evm15, "Plain JUMP used for EVM 1.5");
 	appendInstruction(evmasm::Instruction::JUMP);
 	m_stackHeight += _stackDiffAfter;
 }
 
-void EVMAssembly::appendJumpTo(LabelID _labelId, int _stackDiffAfter)
+void EVMAssembly::appendJumpTo(LabelID _labelId, int _stackDiffAfter, JumpType _jumpType)
 {
-	if (m_evm15)
-	{
-		m_bytecode.push_back(uint8_t(evmasm::Instruction::JUMPTO));
-		appendLabelReferenceInternal(_labelId);
-		m_stackHeight += _stackDiffAfter;
-	}
-	else
-	{
-		appendLabelReference(_labelId);
-		appendJump(_stackDiffAfter);
-	}
+	appendLabelReference(_labelId);
+	appendJump(_stackDiffAfter, _jumpType);
 }
 
-void EVMAssembly::appendJumpToIf(LabelID _labelId)
+void EVMAssembly::appendJumpToIf(LabelID _labelId, JumpType)
 {
-	if (m_evm15)
-	{
-		m_bytecode.push_back(uint8_t(evmasm::Instruction::JUMPIF));
-		appendLabelReferenceInternal(_labelId);
-		m_stackHeight--;
-	}
-	else
-	{
-		appendLabelReference(_labelId);
-		appendInstruction(evmasm::Instruction::JUMPI);
-	}
-}
-
-void EVMAssembly::appendBeginsub(LabelID _labelId, int _arguments)
-{
-	yulAssert(m_evm15, "BEGINSUB used for EVM 1.0");
-	yulAssert(_arguments >= 0, "");
-	setLabelToCurrentPosition(_labelId);
-	m_bytecode.push_back(uint8_t(evmasm::Instruction::BEGINSUB));
-	m_stackHeight += _arguments;
-}
-
-void EVMAssembly::appendJumpsub(LabelID _labelId, int _arguments, int _returns)
-{
-	yulAssert(m_evm15, "JUMPSUB used for EVM 1.0");
-	yulAssert(_arguments >= 0 && _returns >= 0, "");
-	m_bytecode.push_back(uint8_t(evmasm::Instruction::JUMPSUB));
-	appendLabelReferenceInternal(_labelId);
-	m_stackHeight += _returns - _arguments;
-}
-
-void EVMAssembly::appendReturnsub(int _returns, int _stackDiffAfter)
-{
-	yulAssert(m_evm15, "RETURNSUB used for EVM 1.0");
-	yulAssert(_returns >= 0, "");
-	m_bytecode.push_back(uint8_t(evmasm::Instruction::RETURNSUB));
-	m_stackHeight += _stackDiffAfter - _returns;
+	appendLabelReference(_labelId);
+	appendInstruction(evmasm::Instruction::JUMPI);
 }
 
 evmasm::LinkerObject EVMAssembly::finalize()
 {
+	yulAssert(!m_invalid, "Attempted to finalize invalid assembly object.");
 	size_t bytecodeSize = m_bytecode.size();
 	for (auto const& ref: m_assemblySizePositions)
 		updateReference(ref, assemblySizeReferenceSize, u256(bytecodeSize));
@@ -165,7 +121,7 @@ evmasm::LinkerObject EVMAssembly::finalize()
 		size_t referencePos = ref.first;
 		yulAssert(m_labelPositions.count(ref.second), "");
 		size_t labelPos = m_labelPositions.at(ref.second);
-		yulAssert(labelPos != size_t(-1), "Undefined but allocated label used.");
+		yulAssert(labelPos != numeric_limits<size_t>::max(), "Undefined but allocated label used.");
 		updateReference(referencePos, labelReferenceSize, u256(labelPos));
 	}
 
@@ -177,7 +133,7 @@ evmasm::LinkerObject EVMAssembly::finalize()
 void EVMAssembly::setLabelToCurrentPosition(LabelID _labelId)
 {
 	yulAssert(m_labelPositions.count(_labelId), "Label not found.");
-	yulAssert(m_labelPositions[_labelId] == size_t(-1), "Label already set.");
+	yulAssert(m_labelPositions[_labelId] == numeric_limits<size_t>::max(), "Label already set.");
 	m_labelPositions[_labelId] = m_bytecode.size();
 }
 
@@ -194,18 +150,18 @@ void EVMAssembly::appendAssemblySize()
 	m_bytecode += bytes(assemblySizeReferenceSize);
 }
 
-pair<shared_ptr<AbstractAssembly>, AbstractAssembly::SubID> EVMAssembly::createSubAssembly()
+pair<shared_ptr<AbstractAssembly>, AbstractAssembly::SubID> EVMAssembly::createSubAssembly(string)
 {
 	yulAssert(false, "Sub assemblies not implemented.");
 	return {};
 }
 
-void EVMAssembly::appendDataOffset(AbstractAssembly::SubID)
+void EVMAssembly::appendDataOffset(vector<AbstractAssembly::SubID> const&)
 {
 	yulAssert(false, "Data not implemented.");
 }
 
-void EVMAssembly::appendDataSize(AbstractAssembly::SubID)
+void EVMAssembly::appendDataSize(vector<AbstractAssembly::SubID> const&)
 {
 	yulAssert(false, "Data not implemented.");
 }

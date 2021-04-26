@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * Optimisation stage that replaces constants by expressions that compute them.
  */
@@ -22,7 +23,7 @@
 
 #include <libyul/optimiser/ASTCopier.h>
 #include <libyul/backends/evm/EVMMetrics.h>
-#include <libyul/AsmData.h>
+#include <libyul/AST.h>
 #include <libyul/Utilities.h>
 
 #include <libsolutil/CommonData.h>

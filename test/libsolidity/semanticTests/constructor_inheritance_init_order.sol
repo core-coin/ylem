@@ -1,6 +1,6 @@
 contract A {
     uint x;
-    constructor() public {
+    constructor() {
         x = 42;
     }
     function f() public returns(uint256) {
@@ -11,6 +11,7 @@ contract B is A {
     uint public y = f();
 }
 // ====
+// compileToEwasm: also
 // compileViaYul: true
 // ----
 // constructor() ->

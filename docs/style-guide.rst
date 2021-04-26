@@ -56,7 +56,7 @@ Surround top level declarations in solidity source with two blank lines.
 Yes::
 
     // SPDX-License-Identifier: GPL-3.0
-    pragma solidity >=0.4.0 <0.7.0;
+    pragma solidity >=0.4.0 <0.9.0;
 
     contract A {
         // ...
@@ -75,7 +75,7 @@ Yes::
 No::
 
     // SPDX-License-Identifier: GPL-3.0
-    pragma solidity >=0.4.0 <0.7.0;
+    pragma solidity >=0.4.0 <0.9.0;
 
     contract A {
         // ...
@@ -95,7 +95,7 @@ Blank lines may be omitted between groups of related one-liners (such as stub fu
 Yes::
 
     // SPDX-License-Identifier: GPL-3.0
-    pragma solidity ^0.6.0;
+    pragma solidity >=0.6.0 <0.9.0;
 
     abstract contract A {
         function spam() public virtual pure;
@@ -116,7 +116,7 @@ Yes::
 No::
 
     // SPDX-License-Identifier: GPL-3.0
-    pragma solidity >=0.6.0 <0.7.0;
+    pragma solidity >=0.6.0 <0.9.0;
 
     abstract contract A {
         function spam() virtual pure public;
@@ -251,7 +251,7 @@ Import statements should always be placed at the top of the file.
 Yes::
 
     // SPDX-License-Identifier: GPL-3.0
-    pragma solidity >=0.4.0 <0.7.0;
+    pragma solidity >=0.4.0 <0.9.0;
 
     import "./Owned.sol";
 
@@ -266,7 +266,7 @@ Yes::
 No::
 
     // SPDX-License-Identifier: GPL-3.0
-    pragma solidity >=0.4.0 <0.7.0;
+    pragma solidity >=0.4.0 <0.9.0;
 
     contract A {
         // ...
@@ -300,10 +300,9 @@ Within a grouping, place the ``view`` and ``pure`` functions last.
 Yes::
 
     // SPDX-License-Identifier: GPL-3.0
-    pragma solidity ^0.6.0;
-
+    pragma solidity >=0.7.0 <0.9.0;
     contract A {
-        constructor() public {
+        constructor() {
             // ...
         }
 
@@ -337,8 +336,7 @@ Yes::
 No::
 
     // SPDX-License-Identifier: GPL-3.0
-    pragma solidity ^0.6.0;
-
+    pragma solidity >=0.7.0 <0.9.0;
     contract A {
 
         // External functions
@@ -357,7 +355,7 @@ No::
         // Public functions
         // ...
 
-        constructor() public {
+        constructor() {
             // ...
         }
 
@@ -445,7 +443,7 @@ should:
 Yes::
 
     // SPDX-License-Identifier: GPL-3.0
-    pragma solidity >=0.4.0 <0.7.0;
+    pragma solidity >=0.4.0 <0.9.0;
 
     contract Coin {
         struct Bank {
@@ -457,7 +455,7 @@ Yes::
 No::
 
     // SPDX-License-Identifier: GPL-3.0
-    pragma solidity >=0.4.0 <0.7.0;
+    pragma solidity >=0.4.0 <0.9.0;
 
     contract Coin
     {
@@ -560,7 +558,7 @@ Yes::
         return x + 1;
     }
 
-    function increment(uint x) public pure onlyowner returns (uint) {
+    function increment(uint x) public pure onlyOwner returns (uint) {
         return x + 1;
     }
 
@@ -596,7 +594,7 @@ Yes::
         return balanceOf[from];
     }
 
-    function shutdown() public onlyowner {
+    function shutdown() public onlyOwner {
         selfdestruct(owner);
     }
 
@@ -606,7 +604,7 @@ No::
         return balanceOf[from];
     }
 
-    function shutdown() onlyowner public {
+    function shutdown() onlyOwner public {
         selfdestruct(owner);
     }
 
@@ -663,7 +661,7 @@ Yes::
 
     function thisFunctionNameIsReallyLong(address x, address y, address z)
         public
-        onlyowner
+        onlyOwner
         priced
         returns (address)
     {
@@ -676,7 +674,7 @@ Yes::
         address z,
     )
         public
-        onlyowner
+        onlyOwner
         priced
         returns (address)
     {
@@ -687,21 +685,21 @@ No::
 
     function thisFunctionNameIsReallyLong(address x, address y, address z)
                                           public
-                                          onlyowner
+                                          onlyOwner
                                           priced
                                           returns (address) {
         doSomething();
     }
 
     function thisFunctionNameIsReallyLong(address x, address y, address z)
-        public onlyowner priced returns (address)
+        public onlyOwner priced returns (address)
     {
         doSomething();
     }
 
     function thisFunctionNameIsReallyLong(address x, address y, address z)
         public
-        onlyowner
+        onlyOwner
         priced
         returns (address) {
         doSomething();
@@ -758,19 +756,18 @@ manner as modifiers if the function declaration is long or hard to read.
 Yes::
 
     // SPDX-License-Identifier: GPL-3.0
-    pragma solidity >=0.4.22 <0.7.0;
-
+    pragma solidity >=0.7.0 <0.9.0;
     // Base contracts just to make this compile
     contract B {
-        constructor(uint) public {
+        constructor(uint) {
         }
     }
     contract C {
-        constructor(uint, uint) public {
+        constructor(uint, uint) {
         }
     }
     contract D {
-        constructor(uint) public {
+        constructor(uint) {
         }
     }
 
@@ -781,7 +778,6 @@ Yes::
             B(param1)
             C(param2, param3)
             D(param4)
-            public
         {
             // do something with param5
             x = param5;
@@ -791,24 +787,23 @@ Yes::
 No::
 
     // SPDX-License-Identifier: GPL-3.0
-    pragma solidity >=0.4.22 <0.7.0;
-
+    pragma solidity >=0.7.0 <0.9.0;
 
     // Base contracts just to make this compile
     contract B {
-        constructor(uint) public {
+        constructor(uint) {
         }
     }
 
 
     contract C {
-        constructor(uint, uint) public {
+        constructor(uint, uint) {
         }
     }
 
 
     contract D {
-        constructor(uint) public {
+        constructor(uint) {
         }
     }
 
@@ -819,8 +814,7 @@ No::
         constructor(uint param1, uint param2, uint param3, uint param4, uint param5)
         B(param1)
         C(param2, param3)
-        D(param4)
-        public {
+        D(param4) {
             x = param5;
         }
     }
@@ -832,8 +826,7 @@ No::
         constructor(uint param1, uint param2, uint param3, uint param4, uint param5)
             B(param1)
             C(param2, param3)
-            D(param4)
-            public {
+            D(param4) {
                 x = param5;
             }
     }
@@ -1015,14 +1008,13 @@ As shown in the example below, if the contract name is ``Congress`` and the libr
 Yes::
 
     // SPDX-License-Identifier: GPL-3.0
-    pragma solidity >=0.4.22 <0.7.0;
-
+    pragma solidity >=0.7.0 <0.9.0;
 
     // Owned.sol
     contract Owned {
         address public owner;
 
-        constructor() public {
+        constructor() {
             owner = msg.sender;
         }
 
@@ -1039,7 +1031,7 @@ Yes::
 and in ``Congress.sol``::
 
     // SPDX-License-Identifier: GPL-3.0
-    pragma solidity >=0.4.0 <0.7.0;
+    pragma solidity >=0.4.0 <0.9.0;
 
     import "./Owned.sol";
 
@@ -1051,14 +1043,13 @@ and in ``Congress.sol``::
 No::
 
     // SPDX-License-Identifier: GPL-3.0
-    pragma solidity >=0.4.22 <0.7.0;
-
+    pragma solidity >=0.7.0 <0.9.0;
 
     // owned.sol
     contract owned {
         address public owner;
 
-        constructor() public {
+        constructor() {
             owner = msg.sender;
         }
 
@@ -1073,6 +1064,10 @@ No::
     }
 
 and in ``Congress.sol``::
+
+    // SPDX-License-Identifier: GPL-3.0
+    pragma solidity ^0.7.0;
+
 
     import "./owned.sol";
 
@@ -1096,7 +1091,7 @@ Events should be named using the CapWords style. Examples: ``Deposit``, ``Transf
 Function Names
 ==============
 
-Functions other than constructors should use mixedCase. Examples: ``getBalance``, ``transfer``, ``verifyOwner``, ``addMember``, ``changeOwner``.
+Functions should use mixedCase. Examples: ``getBalance``, ``transfer``, ``verifyOwner``, ``addMember``, ``changeOwner``.
 
 
 Function Argument Names
@@ -1141,23 +1136,21 @@ Avoiding Naming Collisions
 This convention is suggested when the desired name collides with that of a
 built-in or otherwise reserved name.
 
+.. _style_guide_natspec:
+
 *******
 NatSpec
 *******
 
-Solidity contracts can have a form of comments that are the basis of the
-Ethereum Natural Language Specification Format.
+Solidity contracts can also contain NatSpec comments. They are written with a
+triple slash (``///``) or a double asterisk block (``/** ... */``) and
+they should be used directly above function declarations or statements.
 
-Add comments above functions or contracts following `doxygen <http://www.doxygen.nl>`_ notation
-of one or multiple lines starting with ``///`` or a
-multiline comment starting with ``/**`` and ending with ``*/``.
-
-For example, the contract from `a simple smart contract <simple-smart-contract>`_ with the comments
+For example, the contract from :ref:`a simple smart contract <simple-smart-contract>` with the comments
 added looks like the one below::
 
     // SPDX-License-Identifier: GPL-3.0
-    pragma solidity >=0.4.16 <0.7.0;
-
+    pragma solidity >=0.4.16 <0.9.0;
 
     /// @author The Solidity Team
     /// @title A simple storage example
@@ -1179,6 +1172,6 @@ added looks like the one below::
         }
     }
 
-It is recommended that Solidity contracts are fully annotated using `NatSpec <natspec>`_ for all public interfaces (everything in the ABI).
+It is recommended that Solidity contracts are fully annotated using :ref:`NatSpec <natspec>` for all public interfaces (everything in the ABI).
 
-Please see the section about `NatSpec <natspec>`_ for a detailed explanation.
+Please see the section about :ref:`NatSpec <natspec>` for a detailed explanation.

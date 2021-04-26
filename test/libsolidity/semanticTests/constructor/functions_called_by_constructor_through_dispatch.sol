@@ -1,7 +1,7 @@
 contract Test {
     bytes6 name;
 
-    constructor() public {
+    constructor() {
         function (bytes6 _name) internal setter = setName;
         setter("abcdef");
 
@@ -26,6 +26,7 @@ contract Test {
 }
 
 // ====
+// compileToEwasm: also
 // compileViaYul: also
 // ----
 // getName() -> "def\x00\x00\x00"

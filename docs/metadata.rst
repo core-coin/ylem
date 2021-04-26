@@ -80,6 +80,8 @@ explanatory purposes.
           details: {
             // peephole defaults to "true"
             peephole: true,
+            // inliner defaults to "true"
+            inliner: true,
             // jumpdestRemover defaults to "true"
             jumpdestRemover: true,
             orderLiterals: false,
@@ -202,6 +204,6 @@ This automatically verifies the metadata since its hash is part of the bytecode.
 Excess data corresponds to the constructor input data, which should be decoded
 according to the interface and presented to the user.
 
-In the repository `source-verify <https://github.com/ethereum/source-verify>`_
+In the repository `sourcify <https://github.com/ethereum/sourcify>`_
 (`npm package <https://www.npmjs.com/package/source-verify>`_) you can see
 example code that shows how to use this feature.

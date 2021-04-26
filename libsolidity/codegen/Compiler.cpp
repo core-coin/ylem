@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * @author Christian <c@ethdev.com>
  * @date 2014
@@ -50,8 +51,8 @@ void Compiler::compileContract(
 
 	m_context.optimise(m_optimiserSettings);
 
-	solAssert(m_context.requestedYulFunctionsRan(), "requestedYulFunctions() was not called.");
-	solAssert(m_runtimeContext.requestedYulFunctionsRan(), "requestedYulFunctions() was not called.");
+	solAssert(m_context.appendYulUtilityFunctionsRan(), "appendYulUtilityFunctions() was not called.");
+	solAssert(m_runtimeContext.appendYulUtilityFunctionsRan(), "appendYulUtilityFunctions() was not called.");
 }
 
 std::shared_ptr<evmasm::Assembly> Compiler::runtimeAssemblyPtr() const

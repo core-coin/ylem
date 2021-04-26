@@ -1,5 +1,3 @@
-pragma experimental SMTChecker;
-
 contract C {
 	function f() public pure {
 		int8 x = 1;
@@ -16,3 +14,4 @@ contract C {
 }
 // ----
 // Warning: (104-122): Assertion violation happens here
+

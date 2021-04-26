@@ -14,10 +14,10 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 #include <libsolidity/codegen/ir/Common.h>
 #include <libsolidity/codegen/ir/IRVariable.h>
 #include <libsolidity/ast/AST.h>
-#include <boost/range/adaptor/transformed.hpp>
 #include <libsolutil/StringUtils.h>
 
 using namespace std;
@@ -50,6 +50,17 @@ IRVariable IRVariable::part(string const& _name) const
 			return IRVariable{suffixedName(itemName), itemType ? *itemType : m_type};
 		}
 	solAssert(false, "Invalid stack item name: " + _name);
+}
+
+bool IRVariable::hasPart(std::string const& _name) const
+{
+	for (auto const& [itemName, itemType]: m_type.stackItems())
+		if (itemName == _name)
+		{
+			solAssert(itemName.empty() || itemType, "");
+			return true;
+		}
+	return false;
 }
 
 vector<string> IRVariable::stackSlots() const

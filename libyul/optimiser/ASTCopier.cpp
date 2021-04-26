@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * Creates an independent copy of an AST, renaming identifiers to be unique.
  */
@@ -22,7 +23,7 @@
 
 #include <libyul/Exceptions.h>
 
-#include <libyul/AsmData.h>
+#include <libyul/AST.h>
 
 #include <libsolutil/Common.h>
 
@@ -170,3 +171,9 @@ TypedName ASTCopier::translate(TypedName const& _typedName)
 	return TypedName{_typedName.location, translateIdentifier(_typedName.name), _typedName.type};
 }
 
+YulString FunctionCopier::translateIdentifier(YulString _name)
+{
+	if (m_translations.count(_name))
+		return m_translations.at(_name);
+	return _name;
+}

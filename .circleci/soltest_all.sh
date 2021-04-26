@@ -4,7 +4,7 @@
 #
 # The documentation for solidity is hosted at:
 #
-#     https://solidity.readthedocs.org
+#     https://docs.soliditylang.org
 #
 # ------------------------------------------------------------------------------
 # This file is part of solidity.
@@ -26,12 +26,48 @@
 # ------------------------------------------------------------------------------
 set -e
 
-REPODIR="$(realpath $(dirname $0)/..)"
+REPODIR="$(realpath "$(dirname "$0")"/..)"
 
-for OPTIMIZE in 0 1; do
-    for EVM in homestead byzantium constantinople petersburg istanbul; do
-        EVM=$EVM OPTIMIZE=$OPTIMIZE ${REPODIR}/.circleci/soltest.sh
+EVM_VALUES=(homestead byzantium constantinople petersburg istanbul)
+OPTIMIZE_VALUES=(0 1)
+STEPS=$(( 1 + ${#EVM_VALUES[@]} * ${#OPTIMIZE_VALUES[@]} ))
+
+if (( CIRCLE_NODE_TOTAL )) && (( CIRCLE_NODE_TOTAL > 1 ))
+then
+    RUN_STEPS=$(seq "$STEPS" | circleci tests split | xargs)
+else
+    RUN_STEPS=$(seq "$STEPS" | xargs)
+fi
+
+echo "Running steps $RUN_STEPS..."
+
+STEP=1
+
+
+# Run for ABI encoder v1, without SMTChecker tests.
+[[ " $RUN_STEPS " == *" $STEP "* ]] && EVM=istanbul OPTIMIZE=1 ABI_ENCODER_V1=1 BOOST_TEST_ARGS="-t !smtCheckerTests" "${REPODIR}/.circleci/soltest.sh"
+STEP=$((STEP + 1))
+
+for OPTIMIZE in "${OPTIMIZE_VALUES[@]}"
+do
+    for EVM in "${EVM_VALUES[@]}"
+    do
+        # run tests against hera ewasm evmc vm, only if OPTIMIZE == 0 and evm version is byzantium
+        EWASM_ARGS=""
+        [ "${EVM}" = "byzantium" ] && [ "${OPTIMIZE}" = "0" ] && EWASM_ARGS="--ewasm"
+        ENFORCE_GAS_ARGS=""
+        [ "${EVM}" = "istanbul" ] && ENFORCE_GAS_ARGS="--enforce-gas-cost"
+        # Run SMTChecker tests only when OPTIMIZE == 0
+        DISABLE_SMTCHECKER=""
+        [ "${OPTIMIZE}" != "0" ] && DISABLE_SMTCHECKER="-t !smtCheckerTests"
+
+        [[ " $RUN_STEPS " == *" $STEP "* ]] && EVM="$EVM" OPTIMIZE="$OPTIMIZE" SOLTEST_FLAGS="$SOLTEST_FLAGS $ENFORCE_GAS_ARGS $EWASM_ARGS" BOOST_TEST_ARGS="-t !@nooptions $DISABLE_SMTCHECKER" "${REPODIR}/.circleci/soltest.sh"
+        STEP=$((STEP + 1))
     done
 done
 
-EVM=istanbul OPTIMIZE=1 ABI_ENCODER_V2=1 ${REPODIR}/.circleci/soltest.sh
+if ((STEP != STEPS + 1))
+then
+    echo "Step counter not properly adjusted!" >&2
+    exit 1
+fi

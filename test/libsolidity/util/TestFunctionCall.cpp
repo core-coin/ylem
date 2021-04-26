@@ -30,16 +30,16 @@ using namespace solidity::util;
 using namespace solidity::frontend::test;
 using namespace std;
 
+using Token = soltest::Token;
+
 string TestFunctionCall::format(
 	ErrorReporter& _errorReporter,
 	string const& _linePrefix,
-	bool const _renderResult,
-	bool const _highlight
+	RenderMode _renderMode,
+	bool const _highlight,
+	bool const _interactivePrint
 ) const
 {
-	using namespace soltest;
-	using Token = soltest::Token;
-
 	stringstream stream;
 
 	bool highlight = !matchesExpectation() && _highlight;
@@ -56,9 +56,26 @@ string TestFunctionCall::format(
 		string newline = formatToken(Token::Newline);
 		string failure = formatToken(Token::Failure);
 
-		if (m_call.isLibrary)
+		if (m_call.kind == FunctionCall::Kind::Library)
 		{
 			stream << _linePrefix << newline << ws << "library:" << ws << m_call.signature;
+			return;
+		}
+		else if (m_call.kind == FunctionCall::Kind::Storage)
+		{
+			stream << _linePrefix << newline << ws << "storage" << colon << ws;
+			soltestAssert(m_rawBytes.size() == 1, "");
+			soltestAssert(m_call.expectations.rawBytes().size() == 1, "");
+			bool isEmpty =
+				_renderMode == RenderMode::ActualValuesExpectedGas ?
+				m_rawBytes.front() == 0 :
+				m_call.expectations.rawBytes().front() == 0;
+			string output = isEmpty ? "empty" : "nonempty";
+			if (_renderMode == RenderMode::ActualValuesExpectedGas && !matchesExpectation())
+				AnsiColorized(stream, highlight, {util::formatting::RED_BACKGROUND}) << output;
+			else
+				stream << output;
+
 			return;
 		}
 
@@ -80,7 +97,6 @@ string TestFunctionCall::format(
 			if (!m_call.arguments.parameters.at(0).format.newline)
 				stream << ws;
 			stream << output;
-
 		}
 
 		/// Formats comments on the function parameters and the arrow taking
@@ -92,7 +108,7 @@ string TestFunctionCall::format(
 
 			if (m_call.omitsArrow)
 			{
-				if (_renderResult && (m_failure || !matchesExpectation()))
+				if (_renderMode == RenderMode::ActualValuesExpectedGas && (m_failure || !matchesExpectation()))
 					stream << ws << arrow;
 			}
 			else
@@ -111,11 +127,11 @@ string TestFunctionCall::format(
 
 		/// Format either the expected output or the actual result output
 		string result;
-		if (!_renderResult)
+		if (_renderMode != RenderMode::ActualValuesExpectedGas)
 		{
 			bool const isFailure = m_call.expectations.failure;
 			result = isFailure ?
-				formatFailure(_errorReporter, m_call, m_rawBytes, _renderResult, highlight) :
+				formatFailure(_errorReporter, m_call, m_rawBytes, /* _renderResult */ false, highlight) :
 				formatRawParameters(m_call.expectations.result);
 			if (!result.empty())
 				AnsiColorized(stream, highlight, {util::formatting::RED_BACKGROUND}) << ws << result;
@@ -128,7 +144,7 @@ string TestFunctionCall::format(
 			bytes output = m_rawBytes;
 			bool const isFailure = m_failure;
 			result = isFailure ?
-				formatFailure(_errorReporter, m_call, output, _renderResult, highlight) :
+				formatFailure(_errorReporter, m_call, output, _renderMode == RenderMode::ActualValuesExpectedGas, highlight) :
 				matchesExpectation() ?
 					formatRawParameters(m_call.expectations.result) :
 					formatBytesParameters(
@@ -159,7 +175,7 @@ string TestFunctionCall::format(
 					BytesUtils::formatRawBytes(output, abiParams.value(), _linePrefix) :
 					BytesUtils::formatRawBytes(
 						output,
-						ContractABIUtils::defaultParameters(ceil(output.size() / 32)),
+						ContractABIUtils::defaultParameters((output.size() + 31) / 32),
 						_linePrefix
 					);
 
@@ -191,6 +207,8 @@ string TestFunctionCall::format(
 				stream << comment << m_call.expectations.comment << comment;
 			}
 		}
+
+		stream << formatGasExpectations(_linePrefix, _renderMode == RenderMode::ExpectedValuesActualGas, _interactivePrint);
 	};
 
 	formatOutput(m_call.displayMode == FunctionCall::DisplayMode::SingleLine);
@@ -248,7 +266,7 @@ string TestFunctionCall::formatBytesParameters(
 		}
 		else
 		{
-			ParameterList defaultParameters = ContractABIUtils::defaultParameters(ceil(_bytes.size() / 32));
+			ParameterList defaultParameters = ContractABIUtils::defaultParameters((_bytes.size() + 31) / 32);
 
 			ContractABIUtils::overwriteParameters(_errorReporter, defaultParameters, _parameters);
 			os << BytesUtils::formatBytesRange(_bytes, defaultParameters, _highlight);
@@ -265,8 +283,6 @@ string TestFunctionCall::formatFailure(
 	bool _highlight
 ) const
 {
-	using Token = soltest::Token;
-
 	stringstream os;
 
 	os << formatToken(Token::Failure);
@@ -300,9 +316,42 @@ string TestFunctionCall::formatRawParameters(
 		{
 			if (param.format.newline)
 				os << endl << _linePrefix << "// ";
-			os << param.rawString;
+			for (auto const c: param.rawString)
+				os << (c >= ' ' ? string(1, c) : "\\x" + toHex(static_cast<uint8_t>(c)));
 			if (&param != &_params.back())
 				os << ", ";
+		}
+	return os.str();
+}
+
+string TestFunctionCall::formatGasExpectations(
+	string const& _linePrefix,
+	bool _useActualCost,
+	bool _showDifference
+) const
+{
+	stringstream os;
+	for (auto const& [runType, gasUsed]: (_useActualCost ? m_gasCosts : m_call.expectations.gasUsed))
+		if (!runType.empty())
+		{
+			bool differentResults =
+				m_gasCosts.count(runType) > 0 &&
+				m_call.expectations.gasUsed.count(runType) > 0 &&
+				m_gasCosts.at(runType) != m_call.expectations.gasUsed.at(runType);
+
+			s256 difference = 0;
+			if (differentResults)
+				difference =
+					static_cast<s256>(m_gasCosts.at(runType)) -
+					static_cast<s256>(m_call.expectations.gasUsed.at(runType));
+			int percent = 0;
+			if (differentResults)
+				percent = static_cast<int>(
+					100.0 * (static_cast<double>(difference) / static_cast<double>(m_call.expectations.gasUsed.at(runType)))
+				);
+			os << endl << _linePrefix << "// gas " << runType << ": " << (gasUsed.str());
+			if (_showDifference && differentResults && _useActualCost)
+				os << " [" << showpos << difference << " (" << percent << "%)]";
 		}
 	return os.str();
 }

@@ -23,7 +23,7 @@
 #include <test/libyul/Common.h>
 
 #include <libyul/optimiser/Metrics.h>
-#include <libyul/AsmData.h>
+#include <libyul/AST.h>
 
 #include <boost/test/unit_test.hpp>
 
@@ -332,7 +332,7 @@ BOOST_FIXTURE_TEST_CASE(if_statement_custom_weights, CustomWeightFixture)
 BOOST_AUTO_TEST_CASE(switch_statement_tiny)
 {
 	BOOST_CHECK_EQUAL(codeSize(
-		"{ switch calldatasize() default {} }"
+		"{ switch calldatasize() case 0 {} }"
 	), 4);
 }
 

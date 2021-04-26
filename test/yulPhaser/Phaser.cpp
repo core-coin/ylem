@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 
 #include <test/yulPhaser/TestHelpers.h>
 
@@ -103,7 +104,7 @@ protected:
 	};
 };
 
-BOOST_AUTO_TEST_SUITE(Phaser)
+BOOST_AUTO_TEST_SUITE(Phaser, *boost::unit_test::label("nooptions"))
 BOOST_AUTO_TEST_SUITE(PhaserTest)
 BOOST_AUTO_TEST_SUITE(GeneticAlgorithmFactoryTest)
 
@@ -450,7 +451,7 @@ BOOST_AUTO_TEST_CASE(build_should_apply_prefix)
 	CharStream nestedSource("{{{let x:= 1}}}", "");
 	Program nestedProgram = get<Program>(Program::load(nestedSource));
 	Program flatProgram = get<Program>(Program::load(nestedSource));
-	flatProgram.optimise(Chromosome("f").optimisationSteps());
+	flatProgram.optimise(Chromosome::genesToSteps("f"));
 	assert(toString(nestedProgram) != toString(flatProgram));
 
 	{

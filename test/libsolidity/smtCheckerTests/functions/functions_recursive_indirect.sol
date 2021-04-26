@@ -1,4 +1,3 @@
-pragma experimental SMTChecker;
 contract C
 {
 	uint a;
@@ -21,5 +20,6 @@ contract C
 			assert(a == 0);
 	}
 }
+// ====
+// SMTEngine: all
 // ----
-// Warning: (130-144): Error trying to invoke SMT solver.

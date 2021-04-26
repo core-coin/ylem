@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * Framework for testing features from the analysis phase of compiler.
  */
@@ -32,7 +33,6 @@ namespace solidity::frontend
 {
 class Type;
 class FunctionType;
-using TypePointer = Type const*;
 using FunctionTypePointer = FunctionType const*;
 }
 
@@ -70,6 +70,7 @@ protected:
 	langutil::ErrorList filterErrors(langutil::ErrorList const& _errorList, bool _includeWarnings) const;
 
 	std::vector<std::string> m_warningsToFilter = {"This is a pre-release compiler version"};
+	std::vector<std::string> m_messagesToCut = {"Source file requires different compiler version (current compiler is"};
 
 	/// @returns reference to lazy-instanciated CompilerStack.
 	solidity::frontend::CompilerStack& compiler()

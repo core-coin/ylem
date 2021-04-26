@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * @author Christian <c@ethdev.com>
  * @date 2016
@@ -21,10 +22,12 @@
  */
 
 #include <libyul/AsmParser.h>
+#include <libyul/AST.h>
 #include <libyul/Exceptions.h>
 #include <liblangutil/Scanner.h>
 #include <liblangutil/ErrorReporter.h>
 #include <libsolutil/Common.h>
+#include <libsolutil/Visitor.h>
 
 #include <boost/algorithm/string.hpp>
 
@@ -41,8 +44,8 @@ unique_ptr<Block> Parser::parse(std::shared_ptr<Scanner> const& _scanner, bool _
 {
 	m_recursionDepth = 0;
 
-	_scanner->supportPeriodInIdentifier(true);
-	ScopeGuard resetScanner([&]{ _scanner->supportPeriodInIdentifier(false); });
+	_scanner->setScannerMode(ScannerKind::Yul);
+	ScopeGuard resetScanner([&]{ _scanner->setScannerMode(ScannerKind::Solidity); });
 
 	try
 	{
@@ -58,27 +61,6 @@ unique_ptr<Block> Parser::parse(std::shared_ptr<Scanner> const& _scanner, bool _
 	}
 
 	return nullptr;
-}
-
-std::map<string, evmasm::Instruction> const& Parser::instructions()
-{
-	// Allowed instructions, lowercase names.
-	static map<string, evmasm::Instruction> s_instructions;
-	if (s_instructions.empty())
-	{
-		for (auto const& instruction: evmasm::c_instructions)
-		{
-			if (
-				instruction.second == evmasm::Instruction::JUMPDEST ||
-				evmasm::isPushInstruction(instruction.second)
-			)
-				continue;
-			string name = instruction.first;
-			transform(name.begin(), name.end(), name.begin(), [](unsigned char _c) { return tolower(_c); });
-			s_instructions[name] = instruction.second;
-		}
-	}
-	return s_instructions;
 }
 
 Block Parser::parseBlock()
@@ -136,46 +118,45 @@ Statement Parser::parseStatement()
 	{
 		Statement stmt{createWithLocation<Break>()};
 		checkBreakContinuePosition("break");
-		m_scanner->next();
+		advance();
 		return stmt;
 	}
 	case Token::Continue:
 	{
 		Statement stmt{createWithLocation<Continue>()};
 		checkBreakContinuePosition("continue");
-		m_scanner->next();
+		advance();
 		return stmt;
 	}
-	case Token::Identifier:
-		if (currentLiteral() == "leave")
-		{
-			Statement stmt{createWithLocation<Leave>()};
-			if (!m_insideFunction)
-				m_errorReporter.syntaxError(8149_error, currentLocation(), "Keyword \"leave\" can only be used inside a function.");
-			m_scanner->next();
-			return stmt;
-		}
-		break;
+	case Token::Leave:
+	{
+		Statement stmt{createWithLocation<Leave>()};
+		if (!m_insideFunction)
+			m_errorReporter.syntaxError(8149_error, currentLocation(), "Keyword \"leave\" can only be used inside a function.");
+		advance();
+		return stmt;
+	}
 	default:
 		break;
 	}
+
 	// Options left:
-	// Simple instruction (might turn into functional),
-	// literal,
-	// identifier (might turn into label or functional assignment)
-	ElementaryOperation elementary(parseElementaryOperation());
+	// Expression/FunctionCall
+	// Assignment
+	variant<Literal, Identifier> elementary(parseLiteralOrIdentifier());
 
 	switch (currentToken())
 	{
 	case Token::LParen:
 	{
 		Expression expr = parseCall(std::move(elementary));
-		return ExpressionStatement{locationOf(expr), expr};
+		return ExpressionStatement{locationOf(expr), move(expr)};
 	}
 	case Token::Comma:
 	case Token::AssemblyAssign:
 	{
-		std::vector<Identifier> variableNames;
+		Assignment assignment;
+		assignment.location = locationOf(elementary);
 
 		while (true)
 		{
@@ -197,47 +178,30 @@ Statement Parser::parseStatement()
 			if (m_dialect.builtin(identifier.name))
 				fatalParserError(6272_error, "Cannot assign to builtin function \"" + identifier.name.str() + "\".");
 
-			variableNames.emplace_back(identifier);
+			assignment.variableNames.emplace_back(identifier);
 
 			if (currentToken() != Token::Comma)
 				break;
 
 			expectToken(Token::Comma);
 
-			elementary = parseElementaryOperation();
+			elementary = parseLiteralOrIdentifier();
 		}
-
-		Assignment assignment;
-		assignment.location = std::get<Identifier>(elementary).location;
-		assignment.variableNames = std::move(variableNames);
 
 		expectToken(Token::AssemblyAssign);
 
 		assignment.value = make_unique<Expression>(parseExpression());
 		assignment.location.end = locationOf(*assignment.value).end;
 
-		return Statement{std::move(assignment)};
+		return Statement{move(assignment)};
 	}
 	default:
 		fatalParserError(6913_error, "Call or assignment expected.");
 		break;
 	}
 
-	if (holds_alternative<Identifier>(elementary))
-	{
-		Identifier& identifier = std::get<Identifier>(elementary);
-		return ExpressionStatement{identifier.location, { move(identifier) }};
-	}
-	else if (holds_alternative<Literal>(elementary))
-	{
-		Expression expr = std::get<Literal>(elementary);
-		return ExpressionStatement{locationOf(expr), expr};
-	}
-	else
-	{
-		yulAssert(false, "Invalid elementary operation.");
-		return {};
-	}
+	yulAssert(false, "");
+	return {};
 }
 
 Case Parser::parseCase()
@@ -249,7 +213,7 @@ Case Parser::parseCase()
 	else if (currentToken() == Token::Case)
 	{
 		advance();
-		ElementaryOperation literal = parseElementaryOperation();
+		variant<Literal, Identifier> literal = parseLiteralOrIdentifier();
 		if (!holds_alternative<Literal>(literal))
 			fatalParserError(4805_error, "Literal expected.");
 		_case.value = make_unique<Literal>(std::get<Literal>(std::move(literal)));
@@ -288,60 +252,40 @@ Expression Parser::parseExpression()
 {
 	RecursionGuard recursionGuard(*this);
 
-	ElementaryOperation operation = parseElementaryOperation();
-	if (holds_alternative<FunctionCall>(operation) || currentToken() == Token::LParen)
-		return parseCall(std::move(operation));
-	else if (holds_alternative<Identifier>(operation))
-		return std::get<Identifier>(operation);
-	else
-	{
-		yulAssert(holds_alternative<Literal>(operation), "");
-		return std::get<Literal>(operation);
-	}
+	variant<Literal, Identifier> operation = parseLiteralOrIdentifier();
+	return visit(GenericVisitor{
+		[&](Identifier& _identifier) -> Expression
+		{
+			if (currentToken() == Token::LParen)
+				return parseCall(std::move(operation));
+			if (m_dialect.builtin(_identifier.name))
+				fatalParserError(
+					7104_error,
+					_identifier.location,
+					"Builtin function \"" + _identifier.name.str() + "\" must be called."
+				);
+			return move(_identifier);
+		},
+		[&](Literal& _literal) -> Expression
+		{
+			return move(_literal);
+		}
+	}, operation);
 }
 
-std::map<evmasm::Instruction, string> const& Parser::instructionNames()
-{
-	static map<evmasm::Instruction, string> s_instructionNames;
-	if (s_instructionNames.empty())
-	{
-		for (auto const& instr: instructions())
-			s_instructionNames[instr.second] = instr.first;
-		// set the ambiguous instructions to a clear default
-		s_instructionNames[evmasm::Instruction::SELFDESTRUCT] = "selfdestruct";
-		s_instructionNames[evmasm::Instruction::KECCAK256] = "keccak256";
-	}
-	return s_instructionNames;
-}
-
-Parser::ElementaryOperation Parser::parseElementaryOperation()
+variant<Literal, Identifier> Parser::parseLiteralOrIdentifier()
 {
 	RecursionGuard recursionGuard(*this);
-	ElementaryOperation ret;
 	switch (currentToken())
 	{
 	case Token::Identifier:
-	case Token::Return:
-	case Token::Byte:
-	case Token::Bool:
-	case Token::Address:
-	case Token::Var:
-	case Token::In:
 	{
-		YulString literal{currentLiteral()};
-		if (m_dialect.builtin(literal))
-		{
-			Identifier identifier{currentLocation(), literal};
-			advance();
-			expectToken(Token::LParen, false);
-			return FunctionCall{identifier.location, identifier, {}};
-		}
-		else
-			ret = Identifier{currentLocation(), literal};
+		Identifier identifier{currentLocation(), YulString{currentLiteral()}};
 		advance();
-		break;
+		return identifier;
 	}
 	case Token::StringLiteral:
+	case Token::HexStringLiteral:
 	case Token::Number:
 	case Token::TrueLiteral:
 	case Token::FalseLiteral:
@@ -350,6 +294,7 @@ Parser::ElementaryOperation Parser::parseElementaryOperation()
 		switch (currentToken())
 		{
 		case Token::StringLiteral:
+		case Token::HexStringLiteral:
 			kind = LiteralKind::String;
 			break;
 		case Token::Number:
@@ -379,13 +324,15 @@ Parser::ElementaryOperation Parser::parseElementaryOperation()
 			literal.type = expectAsmIdentifier();
 		}
 
-		ret = std::move(literal);
-		break;
+		return literal;
 	}
+	case Token::Illegal:
+		fatalParserError(1465_error, "Illegal token: " + to_string(m_scanner->currentError()));
+		break;
 	default:
 		fatalParserError(1856_error, "Literal or identifier expected.");
 	}
-	return ret;
+	return {};
 }
 
 VariableDeclaration Parser::parseVariableDeclaration()
@@ -438,10 +385,9 @@ FunctionDefinition Parser::parseFunctionDefinition()
 		expectToken(Token::Comma);
 	}
 	expectToken(Token::RParen);
-	if (currentToken() == Token::Sub)
+	if (currentToken() == Token::RightArrow)
 	{
-		expectToken(Token::Sub);
-		expectToken(Token::GreaterThan);
+		expectToken(Token::RightArrow);
 		while (true)
 		{
 			funDef.returnVariables.emplace_back(parseTypedName());
@@ -460,20 +406,16 @@ FunctionDefinition Parser::parseFunctionDefinition()
 	return funDef;
 }
 
-Expression Parser::parseCall(Parser::ElementaryOperation&& _initialOp)
+FunctionCall Parser::parseCall(variant<Literal, Identifier>&& _initialOp)
 {
 	RecursionGuard recursionGuard(*this);
 
-	FunctionCall ret;
-	if (holds_alternative<Identifier>(_initialOp))
-	{
-		ret.functionName = std::move(std::get<Identifier>(_initialOp));
-		ret.location = ret.functionName.location;
-	}
-	else if (holds_alternative<FunctionCall>(_initialOp))
-		ret = std::move(std::get<FunctionCall>(_initialOp));
-	else
+	if (!holds_alternative<Identifier>(_initialOp))
 		fatalParserError(9980_error, "Function name expected.");
+
+	FunctionCall ret;
+	ret.functionName = std::move(std::get<Identifier>(_initialOp));
+	ret.location = ret.functionName.location;
 
 	expectToken(Token::LParen);
 	if (currentToken() != Token::RParen)
@@ -510,24 +452,10 @@ TypedName Parser::parseTypedName()
 YulString Parser::expectAsmIdentifier()
 {
 	YulString name{currentLiteral()};
-	switch (currentToken())
-	{
-	case Token::Return:
-	case Token::Byte:
-	case Token::Address:
-	case Token::Bool:
-	case Token::Identifier:
-	case Token::Var:
-	case Token::In:
-		break;
-	default:
-		expectToken(Token::Identifier);
-		break;
-	}
-
-	if (m_dialect.builtin(name))
+	if (currentToken() == Token::Identifier && m_dialect.builtin(name))
 		fatalParserError(5568_error, "Cannot use builtin function name \"" + name.str() + "\" as identifier name.");
-	advance();
+	// NOTE: We keep the expectation here to ensure the correct source location for the error above.
+	expectToken(Token::Identifier);
 	return name;
 }
 

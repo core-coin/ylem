@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 
 #pragma once
 
@@ -43,6 +44,8 @@ using AssemblyPointer = std::shared_ptr<Assembly>;
 class Assembly
 {
 public:
+	explicit Assembly(std::string _name = std::string()):m_name(std::move(_name)) { }
+
 	AssemblyItem newTag() { assertThrow(m_usedTags < 0xffffffff, AssemblyException, ""); return AssemblyItem(Tag, m_usedTags++); }
 	AssemblyItem newPushTag() { assertThrow(m_usedTags < 0xffffffff, AssemblyException, ""); return AssemblyItem(PushTag, m_usedTags++); }
 	/// Returns a tag identified by the given name. Creates it if it does not yet exist.
@@ -94,9 +97,11 @@ public:
 	int deposit() const { return m_deposit; }
 	void adjustDeposit(int _adjustment) { m_deposit += _adjustment; assertThrow(m_deposit >= 0, InvalidDeposit, ""); }
 	void setDeposit(int _deposit) { m_deposit = _deposit; assertThrow(m_deposit >= 0, InvalidDeposit, ""); }
+	std::string const& name() const { return m_name; }
 
 	/// Changes the source location used for each appended item.
 	void setSourceLocation(langutil::SourceLocation const& _location) { m_currentSourceLocation = _location; }
+	langutil::SourceLocation const& currentSourceLocation() const { return m_currentSourceLocation; }
 
 	/// Assembles the assembly into bytecode. The assembly should not be modified after this call, since the assembled version is cached.
 	LinkerObject const& assemble() const;
@@ -104,6 +109,7 @@ public:
 	struct OptimiserSettings
 	{
 		bool isCreation = false;
+		bool runInliner = false;
 		bool runJumpdestRemover = false;
 		bool runPeephole = false;
 		bool runDeduplicate = false;
@@ -141,6 +147,12 @@ public:
 		std::map<std::string, unsigned> const& _sourceIndices = std::map<std::string, unsigned>()
 	) const;
 
+	/// Mark this assembly as invalid. Calling ``assemble`` on it will throw.
+	void markAsInvalid() { m_invalid = true; }
+
+	std::vector<size_t> decodeSubPath(size_t _subObjectId) const;
+	size_t encodeSubPath(std::vector<size_t> const& _subPath);
+
 protected:
 	/// Does the same operations as @a optimise, but should only be applied to a sub and
 	/// returns the replaced tags. Also takes an argument containing the tags of this assembly
@@ -160,6 +172,10 @@ private:
 	);
 	static std::string toStringInHex(u256 _value);
 
+	bool m_invalid = false;
+
+	Assembly const* subAssemblyById(size_t _subId) const;
+
 protected:
 	/// 0 is reserved for exception
 	unsigned m_usedTags = 1;
@@ -173,10 +189,17 @@ protected:
 	std::map<util::h256, std::string> m_libraries; ///< Identifiers of libraries to be linked.
 	std::map<util::h256, std::string> m_immutables; ///< Identifiers of immutables.
 
+	/// Map from a vector representing a path to a particular sub assembly to sub assembly id.
+	/// This map is used only for sub-assemblies which are not direct sub-assemblies (where path is having more than one value).
+	std::map<std::vector<size_t>, size_t> m_subPaths;
+
 	mutable LinkerObject m_assembledObject;
 	mutable std::vector<size_t> m_tagPositionsInBytecode;
 
 	int m_deposit = 0;
+	/// Internal name of the assembly object, only used with the Yul backend
+	/// currently
+	std::string m_name;
 
 	langutil::SourceLocation m_currentSourceLocation;
 public:

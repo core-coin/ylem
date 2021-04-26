@@ -8,6 +8,9 @@ contract C {
         return a;
     }
 }
+// ====
+// compileToEwasm: also
+// compileViaYul: also
 // ----
 // f() -> 4, 11, 0x0111, 0x333333, 2222222222222222222
 // g() -> 0x10, 0x0100, 0x0101, 0x333333, 2222222222222222222

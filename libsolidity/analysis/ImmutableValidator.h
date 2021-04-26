@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 
 #pragma once
 
@@ -52,6 +53,7 @@ private:
 	bool visit(MemberAccess const& _memberAccess);
 	bool visit(IfStatement const& _ifStatement);
 	bool visit(WhileStatement const& _whileStatement);
+	void endVisit(IdentifierPath const& _identifierPath);
 	void endVisit(Identifier const& _identifier);
 	void endVisit(Return const& _return);
 

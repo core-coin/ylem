@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * Optimiser component that removes assignments to variables that are not used
  * until they go out of scope or are re-assigned.
@@ -22,7 +23,7 @@
 #include <libyul/optimiser/RedundantAssignEliminator.h>
 
 #include <libyul/optimiser/Semantics.h>
-#include <libyul/AsmData.h>
+#include <libyul/AST.h>
 
 #include <libsolutil/CommonData.h>
 

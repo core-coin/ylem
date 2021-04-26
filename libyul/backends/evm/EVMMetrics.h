@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * Module providing metrics for the optimizer.
  */
@@ -42,7 +43,7 @@ public:
 	GasMeter(EVMDialect const& _dialect, bool _isCreation, size_t _runs):
 		m_dialect(_dialect),
 		m_isCreation{_isCreation},
-		m_runs(_runs)
+		m_runs(_isCreation? 1 : _runs)
 	{}
 
 	/// @returns the full combined costs of deploying and evaluating the expression.

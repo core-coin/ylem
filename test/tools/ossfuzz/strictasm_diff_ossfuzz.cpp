@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 
 #include <libyul/AsmAnalysisInfo.h>
 #include <libyul/AsmParser.h>
@@ -25,7 +26,6 @@
 #include <liblangutil/Exceptions.h>
 #include <liblangutil/ErrorReporter.h>
 #include <liblangutil/EVMVersion.h>
-#include <liblangutil/SourceReferenceFormatter.h>
 
 #include <libsolutil/CommonIO.h>
 #include <libsolutil/CommonData.h>
@@ -42,6 +42,9 @@ using namespace solidity::yul;
 using namespace solidity::util;
 using namespace solidity::langutil;
 using namespace solidity::yul::test::yul_fuzzer;
+
+// Prototype as we can't use the FuzzerInterface.h header.
+extern "C" int LLVMFuzzerTestOneInput(uint8_t const* _data, size_t _size);
 
 extern "C" int LLVMFuzzerTestOneInput(uint8_t const* _data, size_t _size)
 {
@@ -83,16 +86,18 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* _data, size_t _size)
 		stack.parserResult()->code,
 		EVMDialect::strictAssemblyForEVMObjects(langutil::EVMVersion())
 	);
-	if (termReason == yulFuzzerUtil::TerminationReason::StepLimitReached)
+	if (yulFuzzerUtil::resourceLimitsExceeded(termReason))
 		return 0;
 
 	stack.optimize();
 	termReason = yulFuzzerUtil::interpret(
 		os2,
 		stack.parserResult()->code,
-		EVMDialect::strictAssemblyForEVMObjects(langutil::EVMVersion()),
-		(yul::test::yul_fuzzer::yulFuzzerUtil::maxSteps * 4)
+		EVMDialect::strictAssemblyForEVMObjects(langutil::EVMVersion())
 	);
+
+	if (yulFuzzerUtil::resourceLimitsExceeded(termReason))
+		return 0;
 
 	bool isTraceEq = (os1.str() == os2.str());
 	yulAssert(isTraceEq, "Interpreted traces for optimized and unoptimized code differ.");

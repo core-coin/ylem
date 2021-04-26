@@ -29,12 +29,14 @@ detect_stray_source_files("${contracts_sources}" "contracts/")
 set(libsolutil_sources
     libsolutil/Checksum.cpp
     libsolutil/CommonData.cpp
+    libsolutil/FixedHash.cpp
     libsolutil/IndentedWriter.cpp
     libsolutil/IpfsHash.cpp
     libsolutil/IterateReplacing.cpp
     libsolutil/JSON.cpp
     libsolutil/Keccak256.cpp
     libsolutil/LazyInit.cpp
+    libsolutil/LEB128.cpp
     libsolutil/StringUtils.cpp
     libsolutil/SwarmHash.cpp
     libsolutil/UTF8.cpp
@@ -50,6 +52,7 @@ detect_stray_source_files("${libevmasm_sources}" "libevmasm/")
 
 set(liblangutil_sources
     liblangutil/CharStream.cpp
+    liblangutil/Scanner.cpp
     liblangutil/SourceLocation.cpp
 )
 detect_stray_source_files("${liblangutil_sources}" "liblangutil/")
@@ -78,9 +81,6 @@ set(libsolidity_sources
     libsolidity/SemanticTest.cpp
     libsolidity/SemanticTest.h
     libsolidity/SemVerMatcher.cpp
-    libsolidity/SMTChecker.cpp
-    libsolidity/SMTCheckerJSONTest.cpp
-    libsolidity/SMTCheckerJSONTest.h
     libsolidity/SMTCheckerTest.cpp
     libsolidity/SMTCheckerTest.h
     libsolidity/SolidityCompiler.cpp
@@ -92,12 +92,12 @@ set(libsolidity_sources
     libsolidity/SolidityNatspecJSON.cpp
     libsolidity/SolidityOptimizer.cpp
     libsolidity/SolidityParser.cpp
-    libsolidity/SolidityScanner.cpp
     libsolidity/SolidityTypes.cpp
     libsolidity/StandardCompiler.cpp
     libsolidity/SyntaxTest.cpp
     libsolidity/SyntaxTest.h
     libsolidity/ViewPureChecker.cpp
+    libsolidity/analysis/FunctionCallGraph.cpp
 )
 detect_stray_source_files("${libsolidity_sources}" "libsolidity/")
 
@@ -121,6 +121,8 @@ set(libyul_sources
     libyul/Common.cpp
     libyul/Common.h
     libyul/CompilabilityChecker.cpp
+    libyul/EVMCodeTransformTest.cpp
+    libyul/EVMCodeTransformTest.h
     libyul/EwasmTranslationTest.cpp
     libyul/EwasmTranslationTest.h
     libyul/FunctionSideEffects.cpp
@@ -131,13 +133,14 @@ set(libyul_sources
     libyul/ObjectCompilerTest.h
     libyul/ObjectParser.cpp
     libyul/Parser.cpp
-    libyul/StackReuseCodegen.cpp
     libyul/SyntaxTest.h
     libyul/SyntaxTest.cpp
     libyul/YulInterpreterTest.cpp
     libyul/YulInterpreterTest.h
     libyul/YulOptimizerTest.cpp
     libyul/YulOptimizerTest.h
+    libyul/YulOptimizerTestCommon.cpp
+    libyul/YulOptimizerTestCommon.h
 )
 detect_stray_source_files("${libyul_sources}" "libyul/")
 

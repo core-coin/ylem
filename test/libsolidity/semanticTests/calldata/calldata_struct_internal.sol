@@ -1,4 +1,4 @@
-pragma experimental ABIEncoderV2;
+pragma abicoder               v2;
 
 struct S {
     uint x;
@@ -13,5 +13,7 @@ contract C {
         return f(s);
     }
 }
+// ====
+// compileViaYul: also
 // ----
 // f(uint256,(uint256,uint256),uint256): 7, 1, 2, 4 -> 1, 2

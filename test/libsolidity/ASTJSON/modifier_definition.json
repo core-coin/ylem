@@ -8,7 +8,6 @@
     ]
   },
   "id": 15,
-  "license": null,
   "nodeType": "SourceUnit",
   "nodes":
   [
@@ -17,7 +16,6 @@
       "baseContracts": [],
       "contractDependencies": [],
       "contractKind": "contract",
-      "documentation": null,
       "fullyImplemented": true,
       "id": 14,
       "linearizedBaseContracts":
@@ -25,6 +23,7 @@
         14
       ],
       "name": "C",
+      "nameLocation": "9:1:1",
       "nodeType": "ContractDefinition",
       "nodes":
       [
@@ -43,11 +42,10 @@
               }
             ]
           },
-          "documentation": null,
           "id": 6,
           "name": "M",
+          "nameLocation": "22:1:1",
           "nodeType": "ModifierDefinition",
-          "overrides": null,
           "parameters":
           {
             "id": 3,
@@ -59,8 +57,8 @@
                 "id": 2,
                 "mutability": "mutable",
                 "name": "i",
+                "nameLocation": "29:1:1",
                 "nodeType": "VariableDeclaration",
-                "overrides": null,
                 "scope": 6,
                 "src": "24:6:1",
                 "stateVariable": false,
@@ -82,7 +80,6 @@
                     "typeString": "uint256"
                   }
                 },
-                "value": null,
                 "visibility": "internal"
               }
             ],
@@ -100,7 +97,6 @@
             "src": "64:2:1",
             "statements": []
           },
-          "documentation": null,
           "functionSelector": "28811f59",
           "id": 13,
           "implemented": true,
@@ -111,7 +107,6 @@
               "arguments":
               [
                 {
-                  "argumentTypes": null,
                   "hexValue": "31",
                   "id": 9,
                   "isConstant": false,
@@ -121,7 +116,6 @@
                   "lValueRequested": false,
                   "nodeType": "Literal",
                   "src": "54:1:1",
-                  "subdenomination": null,
                   "typeDescriptions":
                   {
                     "typeIdentifier": "t_rational_1_by_1",
@@ -131,28 +125,22 @@
                 }
               ],
               "id": 10,
+              "kind": "modifierInvocation",
               "modifierName":
               {
-                "argumentTypes": null,
                 "id": 8,
                 "name": "M",
-                "nodeType": "Identifier",
-                "overloadedDeclarations": [],
+                "nodeType": "IdentifierPath",
                 "referencedDeclaration": 6,
-                "src": "52:1:1",
-                "typeDescriptions":
-                {
-                  "typeIdentifier": "t_modifier$_t_uint256_$",
-                  "typeString": "modifier (uint256)"
-                }
+                "src": "52:1:1"
               },
               "nodeType": "ModifierInvocation",
               "src": "52:4:1"
             }
           ],
           "name": "F",
+          "nameLocation": "48:1:1",
           "nodeType": "FunctionDefinition",
-          "overrides": null,
           "parameters":
           {
             "id": 7,
@@ -175,7 +163,8 @@
         }
       ],
       "scope": 15,
-      "src": "0:68:1"
+      "src": "0:68:1",
+      "usedErrors": []
     }
   ],
   "src": "0:69:1"

@@ -1,5 +1,3 @@
-pragma experimental SMTChecker;
-
 abstract contract D
 {
 	function g(uint x) public virtual;
@@ -17,5 +15,6 @@ contract C
 		assert(map[0] == map[1]);
 	}
 }
+// ====
+// SMTEngine: all
 // ----
-// Warning: (355-379): Assertion violation happens here

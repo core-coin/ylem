@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 
 #include <test/libyul/ObjectCompilerTest.h>
 
@@ -43,6 +44,7 @@ ObjectCompilerTest::ObjectCompilerTest(string const& _filename):
 {
 	m_source = m_reader.source();
 	m_optimize = m_reader.boolSetting("optimize", false);
+	m_wasm = m_reader.boolSetting("wasm", false);
 	m_expectation = m_reader.simpleExpectations();
 }
 
@@ -50,7 +52,7 @@ TestCase::TestResult ObjectCompilerTest::run(ostream& _stream, string const& _li
 {
 	AssemblyStack stack(
 		EVMVersion(),
-		AssemblyStack::Language::StrictAssembly,
+		m_wasm ? AssemblyStack::Language::Ewasm : AssemblyStack::Language::StrictAssembly,
 		m_optimize ? OptimiserSettings::full() : OptimiserSettings::minimal()
 	);
 	if (!stack.parseAndAnalyze("source", m_source))
@@ -61,60 +63,40 @@ TestCase::TestResult ObjectCompilerTest::run(ostream& _stream, string const& _li
 	}
 	stack.optimize();
 
-	MachineAssemblyObject obj = stack.assemble(AssemblyStack::Machine::EVM);
-	solAssert(obj.bytecode, "");
-	solAssert(obj.sourceMappings, "");
-
-	m_obtainedResult = "Assembly:\n" + obj.assembly;
-	if (obj.bytecode->bytecode.empty())
-		m_obtainedResult += "-- empty bytecode --\n";
-	else
-		m_obtainedResult +=
-			"Bytecode: " +
-			toHex(obj.bytecode->bytecode) +
-			"\nOpcodes: " +
-			boost::trim_copy(evmasm::disassemble(obj.bytecode->bytecode)) +
-			"\nSourceMappings:" +
-			(obj.sourceMappings->empty() ? "" : " " + *obj.sourceMappings) +
-			"\n";
-
-	if (m_expectation != m_obtainedResult)
+	if (m_wasm)
 	{
-		string nextIndentLevel = _linePrefix + "  ";
-		AnsiColorized(_stream, _formatted, {formatting::BOLD, formatting::CYAN}) << _linePrefix << "Expected result:" << endl;
-		printIndented(_stream, m_expectation, nextIndentLevel);
-		AnsiColorized(_stream, _formatted, {formatting::BOLD, formatting::CYAN}) << _linePrefix << "Obtained result:" << endl;
-		printIndented(_stream, m_obtainedResult, nextIndentLevel);
-		return TestResult::Failure;
+		MachineAssemblyObject obj = stack.assemble(AssemblyStack::Machine::Ewasm);
+		solAssert(obj.bytecode, "");
+
+		m_obtainedResult = "Text:\n" + obj.assembly + "\n";
+		m_obtainedResult += "Binary:\n" + toHex(obj.bytecode->bytecode) + "\n";
 	}
-	return TestResult::Success;
-}
+	else
+	{
+		MachineAssemblyObject obj = stack.assemble(AssemblyStack::Machine::EVM);
+		solAssert(obj.bytecode, "");
+		solAssert(obj.sourceMappings, "");
 
-void ObjectCompilerTest::printSource(ostream& _stream, string const& _linePrefix, bool const) const
-{
-	printIndented(_stream, m_source, _linePrefix);
-}
-
-void ObjectCompilerTest::printUpdatedExpectations(ostream& _stream, string const& _linePrefix) const
-{
-	printIndented(_stream, m_obtainedResult, _linePrefix);
-}
-
-void ObjectCompilerTest::printIndented(ostream& _stream, string const& _output, string const& _linePrefix) const
-{
-	stringstream output(_output);
-	string line;
-	while (getline(output, line))
-		if (line.empty())
-			// Avoid trailing spaces.
-			_stream << boost::trim_right_copy(_linePrefix) << endl;
+		m_obtainedResult = "Assembly:\n" + obj.assembly;
+		if (obj.bytecode->bytecode.empty())
+			m_obtainedResult += "-- empty bytecode --\n";
 		else
-			_stream << _linePrefix << line << endl;
+			m_obtainedResult +=
+				"Bytecode: " +
+				toHex(obj.bytecode->bytecode) +
+				"\nOpcodes: " +
+				boost::trim_copy(evmasm::disassemble(obj.bytecode->bytecode)) +
+				"\nSourceMappings:" +
+				(obj.sourceMappings->empty() ? "" : " " + *obj.sourceMappings) +
+				"\n";
+	}
+
+	return checkResult(_stream, _linePrefix, _formatted);
 }
 
 void ObjectCompilerTest::printErrors(ostream& _stream, ErrorList const& _errors)
 {
-	SourceReferenceFormatter formatter(_stream);
+	SourceReferenceFormatter formatter(_stream, true, false);
 
 	for (auto const& error: _errors)
 		formatter.printErrorInformation(*error);

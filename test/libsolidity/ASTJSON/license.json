@@ -17,7 +17,6 @@
       "baseContracts": [],
       "contractDependencies": [],
       "contractKind": "contract",
-      "documentation": null,
       "fullyImplemented": true,
       "id": 1,
       "linearizedBaseContracts":
@@ -25,10 +24,12 @@
         1
       ],
       "name": "C",
+      "nameLocation": "45:1:1",
       "nodeType": "ContractDefinition",
       "nodes": [],
       "scope": 2,
-      "src": "36:13:1"
+      "src": "36:13:1",
+      "usedErrors": []
     }
   ],
   "src": "36:14:1"

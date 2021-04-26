@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * Exceptions in Yul.
  */
@@ -23,6 +24,8 @@
 #include <libsolutil/Exceptions.h>
 #include <libsolutil/Assertions.h>
 
+#include <libyul/YulString.h>
+
 namespace solidity::yul
 {
 
@@ -30,6 +33,23 @@ struct YulException: virtual util::Exception {};
 struct OptimizerException: virtual YulException {};
 struct CodegenException: virtual YulException {};
 struct YulAssertion: virtual YulException {};
+
+struct StackTooDeepError: virtual YulException
+{
+	StackTooDeepError(YulString _variable, int _depth, std::string const& _message):
+		variable(_variable), depth(_depth)
+	{
+		*this << util::errinfo_comment(_message);
+	}
+	StackTooDeepError(YulString _functionName, YulString _variable, int _depth, std::string const& _message):
+		functionName(_functionName), variable(_variable), depth(_depth)
+	{
+		*this << util::errinfo_comment(_message);
+	}
+	YulString functionName;
+	YulString variable;
+	int depth;
+};
 
 /// Assertion that throws an YulAssertion containing the given description if it is not met.
 #define yulAssert(CONDITION, DESCRIPTION) \

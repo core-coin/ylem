@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 
 #include <libsmtutil/SMTLib2Interface.h>
 
@@ -37,11 +38,13 @@ using namespace solidity::frontend;
 using namespace solidity::smtutil;
 
 SMTLib2Interface::SMTLib2Interface(
-	map<h256, string> const& _queryResponses,
-	ReadCallback::Callback _smtCallback
+	map<h256, string> _queryResponses,
+	ReadCallback::Callback _smtCallback,
+	optional<unsigned> _queryTimeout
 ):
-	m_queryResponses(_queryResponses),
-	m_smtCallback(std::move(_smtCallback))
+	SolverInterface(_queryTimeout),
+	m_queryResponses(move(_queryResponses)),
+	m_smtCallback(move(_smtCallback))
 {
 	reset();
 }
@@ -53,6 +56,8 @@ void SMTLib2Interface::reset()
 	m_variables.clear();
 	m_userSorts.clear();
 	write("(set-option :produce-models true)");
+	if (m_queryTimeout)
+		write("(set-option :timeout " + to_string(*m_queryTimeout) + ")");
 	write("(set-logic ALL)");
 }
 
@@ -139,7 +144,7 @@ string SMTLib2Interface::toSExpr(Expression const& _expr)
 	std::string sexpr = "(";
 	if (_expr.name == "int2bv")
 	{
-		size_t size = std::stoi(_expr.arguments[1].name);
+		size_t size = std::stoul(_expr.arguments[1].name);
 		auto arg = toSExpr(_expr.arguments.front());
 		auto int2bv = "(_ int2bv " + to_string(size) + ")";
 		// Some solvers treat all BVs as unsigned, so we need to manually apply 2's complement if needed.
@@ -184,7 +189,7 @@ string SMTLib2Interface::toSExpr(Expression const& _expr)
 	{
 		smtAssert(_expr.arguments.size() == 2, "");
 		auto tupleSort = dynamic_pointer_cast<TupleSort>(_expr.arguments.at(0).sort);
-		unsigned index = std::stoi(_expr.arguments.at(1).name);
+		size_t index = std::stoul(_expr.arguments.at(1).name);
 		smtAssert(index < tupleSort->members.size(), "");
 		sexpr += "|" + tupleSort->members.at(index) + "| " + toSExpr(_expr.arguments.at(0));
 	}
@@ -214,6 +219,8 @@ string SMTLib2Interface::toSmtLibSort(Sort const& _sort)
 		return "Int";
 	case Kind::Bool:
 		return "Bool";
+	case Kind::BitVector:
+		return "(_ BitVec " + to_string(dynamic_cast<BitVectorSort const&>(_sort).size) + ")";
 	case Kind::Array:
 	{
 		auto const& arraySort = dynamic_cast<ArraySort const&>(_sort);

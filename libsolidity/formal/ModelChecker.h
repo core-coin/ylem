@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * Entry point to the model checking engines.
  * The goal of this class is to make different
@@ -25,6 +26,7 @@
 #include <libsolidity/formal/BMC.h>
 #include <libsolidity/formal/CHC.h>
 #include <libsolidity/formal/EncodingContext.h>
+#include <libsolidity/formal/ModelCheckerSettings.h>
 
 #include <libsolidity/interface/ReadFile.h>
 
@@ -48,9 +50,17 @@ public:
 	ModelChecker(
 		langutil::ErrorReporter& _errorReporter,
 		std::map<solidity::util::h256, std::string> const& _smtlib2Responses,
+		ModelCheckerSettings _settings = ModelCheckerSettings{},
 		ReadCallback::Callback const& _smtCallback = ReadCallback::Callback(),
 		smtutil::SMTSolverChoice _enabledSolvers = smtutil::SMTSolverChoice::All()
 	);
+
+	// TODO This should be removed for 0.9.0.
+	void enableAllEnginesIfPragmaPresent(std::vector<std::shared_ptr<SourceUnit>> const& _sources);
+
+	/// Generates error messages if the requested sources and contracts
+	/// do not exist.
+	void checkRequestedSourcesAndContracts(std::vector<std::shared_ptr<SourceUnit>> const& _sources);
 
 	void analyze(SourceUnit const& _sources);
 
@@ -63,6 +73,10 @@ public:
 	static smtutil::SMTSolverChoice availableSolvers();
 
 private:
+	langutil::ErrorReporter& m_errorReporter;
+
+	ModelCheckerSettings m_settings;
+
 	/// Stores the context of the encoding.
 	smt::EncodingContext m_context;
 

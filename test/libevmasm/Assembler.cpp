@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * @author Alex Beregszaszi
  * @date 2018
@@ -28,6 +29,7 @@
 #include <string>
 #include <tuple>
 #include <memory>
+#include <libyul/Exceptions.h>
 
 using namespace std;
 using namespace solidity::langutil;
@@ -85,11 +87,11 @@ BOOST_AUTO_TEST_CASE(all_assembly_items)
 	// PushSubSize
 	auto sub = _assembly.appendSubroutine(_subAsmPtr);
 	// PushSub
-	_assembly.pushSubroutineOffset(size_t(sub.data()));
+	_assembly.pushSubroutineOffset(static_cast<size_t>(sub.data()));
 	// PushDeployTimeAddress
 	_assembly.append(PushDeployTimeAddress);
 	// AssignImmutable.
-	// Note that since there is no reference to "someOtherImmutable", this will compile to a simple POP in the hex output.
+	// Note that since there is no reference to "someOtherImmutable", this will just compile to two POPs in the hex output.
 	_assembly.appendImmutableAssignment("someOtherImmutable");
 	_assembly.append(u256(2));
 	_assembly.appendImmutableAssignment("someImmutable");
@@ -103,8 +105,8 @@ BOOST_AUTO_TEST_CASE(all_assembly_items)
 	BOOST_CHECK_EQUAL(
 		_assembly.assemble().toHex(),
 		"5b6001600220606f73__$bf005014d9d0f534b8fcb268bd84c491a2$__"
-		"60005660676022604573000000000000000000000000000000000000000050"
-		"60028060015250"
+		"6000566067602260457300000000000000000000000000000000000000005050"
+		"600260010152"
 		"00fe"
 		"7f0000000000000000000000000000000000000000000000000000000000000000"
 		"fe010203044266eeaa"
@@ -182,12 +184,14 @@ BOOST_AUTO_TEST_CASE(immutable)
 	shared_ptr<Assembly> _subAsmPtr = make_shared<Assembly>(_subAsm);
 
 	_assembly.append(u256(42));
+	_assembly.append(u256(0));
 	_assembly.appendImmutableAssignment("someImmutable");
 	_assembly.append(u256(23));
+	_assembly.append(u256(0));
 	_assembly.appendImmutableAssignment("someOtherImmutable");
 
 	auto sub = _assembly.appendSubroutine(_subAsmPtr);
-	_assembly.pushSubroutineOffset(size_t(sub.data()));
+	_assembly.pushSubroutineOffset(static_cast<size_t>(sub.data()));
 
 	checkCompilation(_assembly);
 
@@ -196,21 +200,22 @@ BOOST_AUTO_TEST_CASE(immutable)
 		// root.asm
 		// assign "someImmutable"
 		"602a" // PUSH1 42 - value for someImmutable
-		"80" // DUP1
+		"6000" // PUSH1 0 - offset of code into which to insert the immutable
+		"8181" // DUP2 DUP2
 		"6001" // PUSH1 1 - offset of first someImmutable in sub_0
+		"01" // ADD - add offset of immutable to offset of code
 		"52" // MSTORE
-		"80" // DUP1
 		"6043" // PUSH1 67 - offset of second someImmutable in sub_0
+		"01" // ADD - add offset of immutable to offset of code
 		"52" // MSTORE
-		"50" // POP
 		// assign "someOtherImmutable"
 		"6017" // PUSH1 23 - value for someOtherImmutable
-		"80" // DUP1
+		"6000" // PUSH1 0 - offset of code into which to insert the immutable
 		"6022" // PUSH1 34 - offset of someOtherImmutable in sub_0
+		"01" // ADD - add offset of immutable to offset of code
 		"52" // MSTORE
-		"50" // POP
 		"6063" // PUSH1 0x63 - dataSize(sub_0)
-		"6017" // PUSH1 0x17 - dataOffset(sub_0)
+		"601b" // PUSH1 0x23 - dataOffset(sub_0)
 		"fe" // INVALID
 		// end of root.asm
 		// sub.asm
@@ -222,8 +227,10 @@ BOOST_AUTO_TEST_CASE(immutable)
 		_assembly.assemblyString(),
 		"    /* \"root.asm\":1:3   */\n"
 		"  0x2a\n"
+		"  0x00\n"
 		"  assignImmutable(\"0x26f2c0195e9d408feff3abd77d83f2971f3c9a18d1e8a9437c7835ae4211fc9f\")\n"
 		"  0x17\n"
+		"  0x00\n"
 		"  assignImmutable(\"0xc3978657661c4d8e32e3d5f42597c009f0d3859e9f9d0d94325268f9799e2bfb\")\n"
 		"  dataSize(sub_0)\n"
 		"  dataOffset(sub_0)\n"
@@ -240,8 +247,10 @@ BOOST_AUTO_TEST_CASE(immutable)
 		util::jsonCompactPrint(_assembly.assemblyJSON(indices)),
 		"{\".code\":["
 		"{\"begin\":1,\"end\":3,\"name\":\"PUSH\",\"source\":0,\"value\":\"2A\"},"
+		"{\"begin\":1,\"end\":3,\"name\":\"PUSH\",\"source\":0,\"value\":\"0\"},"
 		"{\"begin\":1,\"end\":3,\"name\":\"ASSIGNIMMUTABLE\",\"source\":0,\"value\":\"someImmutable\"},"
 		"{\"begin\":1,\"end\":3,\"name\":\"PUSH\",\"source\":0,\"value\":\"17\"},"
+		"{\"begin\":1,\"end\":3,\"name\":\"PUSH\",\"source\":0,\"value\":\"0\"},"
 		"{\"begin\":1,\"end\":3,\"name\":\"ASSIGNIMMUTABLE\",\"source\":0,\"value\":\"someOtherImmutable\"},"
 		"{\"begin\":1,\"end\":3,\"name\":\"PUSH #[$]\",\"source\":0,\"value\":\"0000000000000000000000000000000000000000000000000000000000000000\"},"
 		"{\"begin\":1,\"end\":3,\"name\":\"PUSH [$]\",\"source\":0,\"value\":\"0000000000000000000000000000000000000000000000000000000000000000\"}"
@@ -251,6 +260,24 @@ BOOST_AUTO_TEST_CASE(immutable)
 		"{\"begin\":6,\"end\":8,\"name\":\"PUSHIMMUTABLE\",\"source\":1,\"value\":\"someImmutable\"}"
 		"]}}}"
 	);
+}
+
+BOOST_AUTO_TEST_CASE(subobject_encode_decode)
+{
+	Assembly assembly;
+
+	shared_ptr<Assembly> subAsmPtr = make_shared<Assembly>();
+	shared_ptr<Assembly> subSubAsmPtr = make_shared<Assembly>();
+
+	assembly.appendSubroutine(subAsmPtr);
+	subAsmPtr->appendSubroutine(subSubAsmPtr);
+
+	BOOST_CHECK(assembly.encodeSubPath({0}) == 0);
+	BOOST_REQUIRE_THROW(assembly.encodeSubPath({1}), solidity::evmasm::AssemblyException);
+	BOOST_REQUIRE_THROW(assembly.decodeSubPath(1), solidity::evmasm::AssemblyException);
+
+	vector<size_t> subPath{0, 0};
+	BOOST_CHECK(assembly.decodeSubPath(assembly.encodeSubPath(subPath)) == subPath);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

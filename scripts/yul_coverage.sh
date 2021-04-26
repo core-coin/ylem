@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 #------------------------------------------------------------------------------
-# Bash script to determine the percantage of tests that are compilable via Yul.
+# Bash script to determine the percentage of tests that are compilable via Yul.
 #
 # Usage:
 #  ./yul_coverage.sh [--no-stats] [--successful] [--internal-compiler-errors]
@@ -30,7 +30,7 @@
 #
 # The documentation for solidity is hosted at:
 #
-#     https://solidity.readthedocs.org
+#     https://docs.soliditylang.org
 #
 # ------------------------------------------------------------------------------
 # This file is part of solidity.

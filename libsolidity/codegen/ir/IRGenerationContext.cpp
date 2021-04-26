@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * Class that contains contextual information during IR generation.
  */
@@ -29,7 +30,7 @@
 #include <libsolutil/Whiskers.h>
 #include <libsolutil/StringUtils.h>
 
-#include <boost/range/adaptor/map.hpp>
+#include <range/v3/view/map.hpp>
 
 using namespace std;
 using namespace solidity;
@@ -77,6 +78,11 @@ IRVariable const& IRGenerationContext::localVariable(VariableDeclaration const& 
 		"Unknown variable: " + _varDecl.name()
 	);
 	return m_localVariables.at(&_varDecl);
+}
+
+void IRGenerationContext::resetLocalVariables()
+{
+	m_localVariables.clear();
 }
 
 void IRGenerationContext::registerImmutableVariable(VariableDeclaration const& _variable)
@@ -127,7 +133,7 @@ void IRGenerationContext::initializeInternalDispatch(InternalDispatchMap _intern
 {
 	solAssert(internalDispatchClean(), "");
 
-	for (set<FunctionDefinition const*> const& functions: _internalDispatch | boost::adaptors::map_values)
+	for (DispatchSet const& functions: _internalDispatch | ranges::views::values)
 		for (auto function: functions)
 			enqueueFunctionForCodeGeneration(*function);
 
@@ -136,38 +142,26 @@ void IRGenerationContext::initializeInternalDispatch(InternalDispatchMap _intern
 
 InternalDispatchMap IRGenerationContext::consumeInternalDispatchMap()
 {
-	m_directInternalFunctionCalls.clear();
-
 	InternalDispatchMap internalDispatch = move(m_internalDispatchMap);
 	m_internalDispatchMap.clear();
 	return internalDispatch;
 }
 
-void IRGenerationContext::internalFunctionCalledDirectly(Expression const& _expression)
+void IRGenerationContext::addToInternalDispatch(FunctionDefinition const& _function)
 {
-	solAssert(m_directInternalFunctionCalls.count(&_expression) == 0, "");
+	FunctionType const* functionType = TypeProvider::function(_function, FunctionType::Kind::Internal);
+	solAssert(functionType, "");
 
-	m_directInternalFunctionCalls.insert(&_expression);
+	YulArity arity = YulArity::fromType(*functionType);
+
+	if (m_internalDispatchMap.count(arity) != 0 && m_internalDispatchMap[arity].count(&_function) != 0)
+		// Note that m_internalDispatchMap[arity] is a set with a custom comparator, which looks at function IDs not definitions
+		solAssert(*m_internalDispatchMap[arity].find(&_function) == &_function, "Different definitions with the same function ID");
+
+	m_internalDispatchMap[arity].insert(&_function);
+	enqueueFunctionForCodeGeneration(_function);
 }
 
-void IRGenerationContext::internalFunctionAccessed(Expression const& _expression, FunctionDefinition const& _function)
-{
-	solAssert(
-		IRHelpers::referencedFunctionDeclaration(_expression) &&
-		_function.resolveVirtual(mostDerivedContract()) ==
-		IRHelpers::referencedFunctionDeclaration(_expression)->resolveVirtual(mostDerivedContract()),
-		"Function definition does not match the expression"
-	);
-
-	if (m_directInternalFunctionCalls.count(&_expression) == 0)
-	{
-		FunctionType const* functionType = TypeProvider::function(_function, FunctionType::Kind::Internal);
-		solAssert(functionType, "");
-
-		m_internalDispatchMap[YulArity::fromType(*functionType)].insert(&_function);
-		enqueueFunctionForCodeGeneration(_function);
-	}
-}
 
 void IRGenerationContext::internalFunctionCalledThroughDispatch(YulArity const& _arity)
 {

@@ -68,6 +68,12 @@ class AstRawString;
 class AstValueFactory;
 class ParserRecorder;
 
+enum class ScannerKind
+{
+	Solidity,
+	Yul
+};
+
 enum class ScannerError
 {
 	NoError,
@@ -77,10 +83,14 @@ enum class ScannerError
 	IllegalHexDigit,
 	IllegalCommentTerminator,
 	IllegalEscapeSequence,
+	IllegalCharacterInString,
 	IllegalStringEndQuote,
 	IllegalNumberSeparator,
 	IllegalExponent,
 	IllegalNumberEnd,
+
+	DirectionalOverrideUnderflow,
+	DirectionalOverrideMismatch,
 
 	OctalNotAllowed,
 };
@@ -106,9 +116,14 @@ public:
 	/// Resets scanner to the start of input.
 	void reset();
 
-	/// Enables or disables support for period in identifier.
-	/// This re-scans the current token and comment literal and thus invalidates it.
-	void supportPeriodInIdentifier(bool _value);
+	/// Changes the scanner mode.
+	void setScannerMode(ScannerKind _kind)
+	{
+		m_kind = _kind;
+
+		// Invalidate lookahead buffer.
+		rescan();
+	}
 
 	/// @returns the next token and advances input
 	Token next();
@@ -171,6 +186,7 @@ public:
 	///@}
 
 private:
+
 	inline Token setError(ScannerError _error) noexcept
 	{
 		m_tokens[NextNext].error = _error;
@@ -196,7 +212,7 @@ private:
 	///@}
 
 	bool advance() { m_char = m_source->advanceAndGet(); return !m_source->isPastEndOfInput(); }
-	void rollback(int _amount) { m_char = m_source->rollback(_amount); }
+	void rollback(size_t _amount) { m_char = m_source->rollback(_amount); }
 	/// Rolls back to the start of the current token and re-runs the scanner.
 	void rescan();
 
@@ -228,10 +244,10 @@ private:
 	Token scanNumber(char _charSeen = 0);
 	std::tuple<Token, unsigned, unsigned> scanIdentifierOrKeyword();
 
-	Token scanString();
+	Token scanString(bool const _isUnicode);
 	Token scanHexString();
 	/// Scans a single line comment and returns its corrected end position.
-	int scanSingleLineDocComment();
+	size_t scanSingleLineDocComment();
 	Token scanMultiLineDocComment();
 	/// Scans a slash '/' and depending on the characters returns the appropriate token
 	Token scanSlash();
@@ -245,10 +261,8 @@ private:
 	bool isUnicodeLinebreak();
 
 	/// Return the current source position.
-	int sourcePos() const { return m_source->position(); }
+	size_t sourcePos() const { return m_source->position(); }
 	bool isSourcePastEndOfInput() const { return m_source->isPastEndOfInput(); }
-
-	bool m_supportPeriodInIdentifier = false;
 
 	enum TokenIndex { Current, Next, NextNext };
 
@@ -256,6 +270,8 @@ private:
 	TokenDesc m_tokens[3] = {}; // desc for the current, next and nextnext token
 
 	std::shared_ptr<CharStream> m_source;
+
+	ScannerKind m_kind = ScannerKind::Solidity;
 
 	/// one character look-ahead, equals 0 at end of input
 	char m_char;

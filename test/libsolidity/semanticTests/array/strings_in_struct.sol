@@ -8,7 +8,7 @@ contract buggystruct {
         string last;
     }
 
-    constructor() public {
+    constructor() {
         bug = Buggy(10, 20, 30, "asdfghjkl");
     }
 
@@ -28,6 +28,8 @@ contract buggystruct {
         return bug.last;
     }
 }
+// ====
+// compileViaYul: also
 // ----
 // getFirst() -> 0x0a
 // getSecond() -> 0x14

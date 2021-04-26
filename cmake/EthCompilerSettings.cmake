@@ -16,9 +16,11 @@
 
 include(EthCheckCXXCompilerFlag)
 
-eth_add_cxx_compiler_flag_if_supported(-fstack-protector-strong have_stack_protector_strong_support)
-if(NOT have_stack_protector_strong_support)
-	eth_add_cxx_compiler_flag_if_supported(-fstack-protector)
+if(NOT EMSCRIPTEN)
+	eth_add_cxx_compiler_flag_if_supported(-fstack-protector-strong have_stack_protector_strong_support)
+	if(NOT have_stack_protector_strong_support)
+		eth_add_cxx_compiler_flag_if_supported(-fstack-protector)
+	endif()
 endif()
 
 eth_add_cxx_compiler_flag_if_supported(-Wimplicit-fallthrough)
@@ -46,8 +48,22 @@ if (("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU") OR ("${CMAKE_CXX_COMPILER_ID}" MA
 	add_compile_options(-Wextra)
 	add_compile_options(-Werror)
 	add_compile_options(-pedantic)
+	add_compile_options(-Wmissing-declarations)
 	add_compile_options(-Wno-unknown-pragmas)
 	add_compile_options(-Wimplicit-fallthrough)
+	add_compile_options(-Wsign-conversion)
+	add_compile_options(-Wconversion)
+
+	eth_add_cxx_compiler_flag_if_supported(
+		$<$<COMPILE_LANGUAGE:CXX>:-Wextra-semi>
+	)
+	eth_add_cxx_compiler_flag_if_supported(-Wfinal-dtor-non-final-class)
+	eth_add_cxx_compiler_flag_if_supported(-Wnewline-eof)
+	eth_add_cxx_compiler_flag_if_supported(-Wsuggest-destructor-override)
+	eth_add_cxx_compiler_flag_if_supported(-Wduplicated-cond)
+	eth_add_cxx_compiler_flag_if_supported(-Wduplicate-enum)
+	eth_add_cxx_compiler_flag_if_supported(-Wlogical-op)
+	eth_add_cxx_compiler_flag_if_supported(-Wno-unknown-attributes)
 
 	# Configuration-specific compiler settings.
 	set(CMAKE_CXX_FLAGS_DEBUG          "-O0 -g3 -DETH_DEBUG")
@@ -57,12 +73,9 @@ if (("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU") OR ("${CMAKE_CXX_COMPILER_ID}" MA
 
 	# Additional GCC-specific compiler settings.
 	if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
-
-		# Check that we've got GCC 5.0 or newer.
-		execute_process(
-			COMMAND ${CMAKE_CXX_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
-		if (NOT (GCC_VERSION VERSION_GREATER 5.0 OR GCC_VERSION VERSION_EQUAL 5.0))
-			message(FATAL_ERROR "${PROJECT_NAME} requires g++ 5.0 or greater.")
+		# Check that we've got GCC 8.0 or newer.
+		if (NOT (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 8.0))
+			message(FATAL_ERROR "${PROJECT_NAME} requires g++ 8.0 or greater.")
 		endif ()
 
 		# Use fancy colors in the compiler diagnostics
@@ -70,6 +83,11 @@ if (("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU") OR ("${CMAKE_CXX_COMPILER_ID}" MA
 
 	# Additional Clang-specific compiler settings.
 	elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+		# Check that we've got clang 7.0 or newer.
+		if (NOT (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 7.0))
+			message(FATAL_ERROR "${PROJECT_NAME} requires clang++ 7.0 or greater.")
+		endif ()
+
 		if ("${CMAKE_SYSTEM_NAME}" MATCHES "Darwin")
 			# Set stack size to 32MB - by default Apple's clang defines a stack size of 8MB.
 			# Normally 16MB is enough to run all tests, but it will exceed the stack, if -DSANITIZE=address is used.
@@ -109,15 +127,13 @@ if (("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU") OR ("${CMAKE_CXX_COMPILER_ID}" MA
 			# Re-enable exception catching (optimisations above -O1 disable it)
 			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s DISABLE_EXCEPTION_CATCHING=0")
 			# Remove any code related to exit (such as atexit)
-			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s NO_EXIT_RUNTIME=1")
+			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s EXIT_RUNTIME=0")
 			# Remove any code related to filesystem access
-			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s NO_FILESYSTEM=1")
-			# Remove variables even if it needs to be duplicated (can improve speed at the cost of size)
-			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s AGGRESSIVE_VARIABLE_ELIMINATION=1")
+			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s FILESYSTEM=0")
 			# Allow memory growth, but disable some optimisations
 			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s ALLOW_MEMORY_GROWTH=1")
 			# Disable eval()
-			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s NO_DYNAMIC_EXECUTION=1")
+			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s DYNAMIC_EXECUTION=0")
 			# Disable greedy exception catcher
 			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s NODEJS_CATCH_EXIT=0")
 			# Abort if linking results in any undefined symbols
@@ -134,7 +150,8 @@ if (("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU") OR ("${CMAKE_CXX_COMPILER_ID}" MA
 			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s WASM_ASYNC_COMPILATION=0")
 			# Output a single js file with the wasm binary embedded as base64 string.
 			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s SINGLE_FILE=1")
-
+			# Allow new functions to be added to the wasm module via addFunction.
+			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s ALLOW_TABLE_GROWTH=1")
 			# Disable warnings about not being pure asm.js due to memory growth.
 			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-almost-asm")
 		endif()
@@ -156,9 +173,10 @@ elseif (DEFINED MSVC)
 	add_compile_options(/wd4800)					# disable forcing value to bool 'true' or 'false' (performance warning) (4800)
 	add_compile_options(-D_WIN32_WINNT=0x0600)		# declare Windows Vista API requirement
 	add_compile_options(-DNOMINMAX)					# undefine windows.h MAX && MIN macros cause it cause conflicts with std::min && std::max functions
-	add_compile_options(/utf-8)					# enable utf-8 encoding (solves warning 4819)
+	add_compile_options(/utf-8)						# enable utf-8 encoding (solves warning 4819)
 	add_compile_options(-DBOOST_REGEX_NO_LIB)		# disable automatic boost::regex library selection
 	add_compile_options(-D_REGEX_MAX_STACK_COUNT=200000L)	# increase std::regex recursion depth limit
+	add_compile_options(/permissive-)				# specify standards conformance mode to the compiler
 
 	# disable empty object file warning
 	set(CMAKE_STATIC_LINKER_FLAGS "${CMAKE_STATIC_LINKER_FLAGS} /ignore:4221")
@@ -202,6 +220,9 @@ endif()
 
 # SMT Solvers integration
 option(USE_Z3 "Allow compiling with Z3 SMT solver integration" ON)
+if(UNIX AND NOT APPLE)
+	option(USE_Z3_DLOPEN "Dynamically load the Z3 SMT solver instead of linking against it." OFF)
+endif()
 option(USE_CVC4 "Allow compiling with CVC4 SMT solver integration" ON)
 
 if (("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU") OR ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang"))

@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * Miscellaneous utilities for use in yul-phaser's test cases.
  *
@@ -157,9 +158,9 @@ double mean(std::vector<T> const& _samples)
 
 	double sum = 0;
 	for (T const& sample: _samples)
-		sum += static_cast<double>(sample);
+		sum += double(sample);
 
-	return sum / _samples.size();
+	return sum / double(_samples.size());
 }
 
 /// Calculates the sum of squared differences between @a _expectedValue and the values of a series
@@ -178,9 +179,9 @@ double meanSquaredError(std::vector<T> const& _samples, double _expectedValue)
 
 	double sumOfSquaredDifferences = 0;
 	for (T const& sample: _samples)
-		sumOfSquaredDifferences += (sample - _expectedValue) * (sample - _expectedValue);
+		sumOfSquaredDifferences += (double(sample) - _expectedValue) * (double(sample) - _expectedValue);
 
-	return sumOfSquaredDifferences / _samples.size();
+	return sumOfSquaredDifferences / double(_samples.size());
 }
 
 }

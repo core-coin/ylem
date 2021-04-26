@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 
 #include <tools/yulPhaser/FitnessMetrics.h>
 
@@ -95,7 +96,7 @@ protected:
 	};
 };
 
-BOOST_AUTO_TEST_SUITE(Phaser)
+BOOST_AUTO_TEST_SUITE(Phaser, *boost::unit_test::label("nooptions"))
 BOOST_AUTO_TEST_SUITE(FitnessMetricsTest)
 BOOST_AUTO_TEST_SUITE(ProgramBasedMetricTest)
 
@@ -182,7 +183,7 @@ BOOST_FIXTURE_TEST_CASE(evaluate_should_compute_the_size_ratio_between_optimised
 {
 	BOOST_TEST(
 		RelativeProgramSize(m_program, nullptr, 3, m_weights).evaluate(m_chromosome) ==
-		round(1000.0 * m_optimisedProgram.codeSize(m_weights) / m_program.codeSize(m_weights))
+		round(1000.0 * double(m_optimisedProgram.codeSize(m_weights)) / double(m_program.codeSize(m_weights)))
 	);
 }
 
@@ -190,7 +191,7 @@ BOOST_FIXTURE_TEST_CASE(evaluate_should_be_able_to_use_program_cache_if_availabl
 {
 	BOOST_TEST(
 		RelativeProgramSize(nullopt, m_programCache, 3, m_weights).evaluate(m_chromosome) ==
-		round(1000.0 * m_optimisedProgram.codeSize(m_weights) / m_program.codeSize(m_weights))
+		round(1000.0 * double(m_optimisedProgram.codeSize(m_weights)) / double(m_program.codeSize(m_weights)))
 	);
 	BOOST_TEST(m_programCache->size() == m_chromosome.length());
 }
@@ -205,7 +206,7 @@ BOOST_FIXTURE_TEST_CASE(evaluate_should_repeat_the_optimisation_specified_number
 
 	BOOST_TEST(fitness != 1000);
 	BOOST_TEST(fitness != RelativeProgramSize(programOptimisedTwice, nullptr, 3, m_weights, 1).evaluate(m_chromosome));
-	BOOST_TEST(fitness == round(1000.0 * programOptimisedTwice.codeSize(m_weights) / m_program.codeSize(m_weights)));
+	BOOST_TEST(fitness == round(1000.0 * double(programOptimisedTwice.codeSize(m_weights)) / double(m_program.codeSize(m_weights))));
 }
 
 BOOST_FIXTURE_TEST_CASE(evaluate_should_return_one_if_number_of_repetitions_is_zero, ProgramBasedMetricFixture)
@@ -229,7 +230,7 @@ BOOST_FIXTURE_TEST_CASE(evaluate_should_return_one_if_the_original_program_size_
 
 BOOST_FIXTURE_TEST_CASE(evaluate_should_multiply_the_result_by_scaling_factor, ProgramBasedMetricFixture)
 {
-	double sizeRatio = static_cast<double>(m_optimisedProgram.codeSize(m_weights)) / m_program.codeSize(m_weights);
+	double sizeRatio = double(m_optimisedProgram.codeSize(m_weights)) / double(m_program.codeSize(m_weights));
 	BOOST_TEST(RelativeProgramSize(m_program, nullptr, 0, m_weights).evaluate(m_chromosome) == round(1.0 * sizeRatio));
 	BOOST_TEST(RelativeProgramSize(m_program, nullptr, 1, m_weights).evaluate(m_chromosome) == round(10.0 * sizeRatio));
 	BOOST_TEST(RelativeProgramSize(m_program, nullptr, 2, m_weights).evaluate(m_chromosome) == round(100.0 * sizeRatio));

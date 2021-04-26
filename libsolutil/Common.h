@@ -14,6 +14,7 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /** @file Common.h
  * @author Gav Wood <i@gavwood.com>
  * @date 2014
@@ -106,6 +107,10 @@ inline u256 exp256(u256 _base, u256 _exponent)
 	return result;
 }
 
+/// Checks whether _mantissa * (X ** _exp) fits into 4096 bits,
+/// where X is given indirectly via _log2OfBase = log2(X).
+bool fitsPrecisionBaseX(bigint const& _mantissa, double _log2OfBase, uint32_t _exp);
+
 inline std::ostream& operator<<(std::ostream& os, bytes const& _bytes)
 {
 	std::ostringstream ss;
@@ -127,5 +132,27 @@ public:
 private:
 	std::function<void(void)> m_f;
 };
+
+/// RAII utility class that sets the value of a variable for the current scope and restores it to its old value
+/// during its destructor.
+template<typename V>
+class ScopedSaveAndRestore
+{
+public:
+	explicit ScopedSaveAndRestore(V& _variable, V&& _value): m_variable(_variable), m_oldValue(std::move(_value))
+	{
+		std::swap(m_variable, m_oldValue);
+	}
+	ScopedSaveAndRestore(ScopedSaveAndRestore const&) = delete;
+	~ScopedSaveAndRestore() { std::swap(m_variable, m_oldValue); }
+	ScopedSaveAndRestore& operator=(ScopedSaveAndRestore const&) = delete;
+
+private:
+	V& m_variable;
+	V m_oldValue;
+};
+
+template<typename V, typename... Args>
+ScopedSaveAndRestore(V, Args...) -> ScopedSaveAndRestore<V>;
 
 }

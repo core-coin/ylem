@@ -14,21 +14,26 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 /**
  * Some useful snippets for the optimiser.
  */
 
 #include <libyul/optimiser/OptimizerUtilities.h>
 
-#include <libyul/AsmData.h>
+#include <libyul/Dialect.h>
+#include <libyul/AST.h>
 
+#include <liblangutil/Token.h>
 #include <libsolutil/CommonData.h>
 
 #include <boost/range/algorithm_ext/erase.hpp>
 
 using namespace std;
 using namespace solidity;
+using namespace solidity::langutil;
 using namespace solidity::util;
+using namespace solidity::yul;
 
 void yul::removeEmptyBlocks(Block& _block)
 {
@@ -36,4 +41,9 @@ void yul::removeEmptyBlocks(Block& _block)
 		return holds_alternative<Block>(_st) && std::get<Block>(_st).statements.empty();
 	};
 	boost::range::remove_erase_if(_block.statements, isEmptyBlock);
+}
+
+bool yul::isRestrictedIdentifier(Dialect const& _dialect, YulString const& _identifier)
+{
+	return _identifier.empty() || TokenTraits::isYulKeyword(_identifier.str()) || _dialect.reservedIdentifier(_identifier);
 }

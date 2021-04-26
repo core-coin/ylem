@@ -14,10 +14,12 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+// SPDX-License-Identifier: GPL-3.0
 
 #include <libyul/optimiser/ForLoopConditionIntoBody.h>
 #include <libyul/optimiser/OptimiserStep.h>
-#include <libyul/AsmData.h>
+#include <libyul/AST.h>
+
 #include <libsolutil/CommonData.h>
 
 using namespace std;

@@ -1,5 +1,3 @@
-pragma experimental SMTChecker;
-
 contract C
 {
 	uint x;
@@ -14,5 +12,6 @@ contract C
 		x = x + 1;
 	}
 }
+// ====
+// SMTEngine: all
 // ----
-// Warning: (145-150): Overflow (resulting value larger than 2**256 - 1) happens here
