@@ -1758,7 +1758,7 @@ bool CommandLineInterface::link()
 {
 	// Map from how the libraries will be named inside the bytecode to their addresses.
 	map<string, h160> librariesReplacements;
-	int const placeholderSize = 40; // 20 bytes or 40 hex characters
+	int const placeholderSize = 44; // 22 bytes or 44 hex characters
 	for (auto const& library: m_libraries)
 	{
 		string const& name = library.first;
@@ -1767,12 +1767,12 @@ bool CommandLineInterface::link()
 		// be just the cropped or '_'-padded library name, but this changed to
 		// the cropped hex representation of the hash of the library name.
 		// We support both ways of linking here.
-		librariesReplacements["__" + evmasm::LinkerObject::libraryPlaceholder(name) + "__"] = library.second;
+		librariesReplacements["____" + evmasm::LinkerObject::libraryPlaceholder(name) + "____"] = library.second;
 
-		string replacement = "__";
+		string replacement = "____";
 		for (size_t i = 0; i < placeholderSize - 4; ++i)
 			replacement.push_back(i < name.size() ? name[i] : '_');
-		replacement += "__";
+		replacement += "____";
 		librariesReplacements[replacement] = library.second;
 	}
 

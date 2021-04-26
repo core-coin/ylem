@@ -344,6 +344,15 @@ jobs:
           name: Check for error codes
           command: ./scripts/error_codes.py --check
 
+  chk_errorcodes:
+    docker:
+      - image: circleci/python:3.6
+    steps:
+      - checkout
+      - run:
+          name: Check for error codes
+          command: ./scripts/correct_error_ids.py --noconfirm
+
   chk_pylint:
     docker:
       - image: buildpack-deps:focal
