@@ -30,6 +30,7 @@
 
 #include <memory>
 #include <string>
+#include <limits>
 
 namespace solidity::langutil
 {

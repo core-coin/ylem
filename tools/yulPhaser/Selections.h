@@ -48,7 +48,7 @@ public:
 	Selection& operator=(Selection const&) = delete;
 	virtual ~Selection() = default;
 
-	virtual std::vector<size_t> materialise(size_t _poolSize) const = 0;
+	virtual std::vector<std::size_t> materialise(std::size_t _poolSize) const = 0;
 };
 
 /**
@@ -65,7 +65,7 @@ public:
 		assert(0 <= m_startPercent && m_startPercent <= m_endPercent && m_endPercent <= 1.0);
 	}
 
-	std::vector<size_t> materialise(size_t _poolSize) const override;
+	std::vector<std::size_t> materialise(std::size_t _poolSize) const override;
 
 private:
 	double m_startPercent;
@@ -84,17 +84,17 @@ private:
 class MosaicSelection: public Selection
 {
 public:
-	explicit MosaicSelection(std::vector<size_t> _pattern, double _selectionSize = 1.0):
+	explicit MosaicSelection(std::vector<std::size_t> _pattern, double _selectionSize = 1.0):
 		m_pattern(move(_pattern)),
 		m_selectionSize(_selectionSize)
 	{
 		assert(m_pattern.size() > 0 || _selectionSize == 0.0);
 	}
 
-	std::vector<size_t> materialise(size_t _poolSize) const override;
+	std::vector<std::size_t> materialise(std::size_t _poolSize) const override;
 
 private:
-	std::vector<size_t> m_pattern;
+	std::vector<std::size_t> m_pattern;
 	double m_selectionSize;
 };
 
@@ -113,7 +113,7 @@ public:
 		assert(_selectionSize >= 0);
 	}
 
-	std::vector<size_t> materialise(size_t _poolSize) const override;
+	std::vector<std::size_t> materialise(std::size_t _poolSize) const override;
 
 private:
 	double m_selectionSize;
@@ -135,7 +135,7 @@ public:
 		assert(0.0 <= _selectionChance && _selectionChance <= 1.0);
 	}
 
-	std::vector<size_t> materialise(size_t _poolSize) const override;
+	std::vector<std::size_t> materialise(std::size_t _poolSize) const override;
 
 private:
 	double m_selectionChance;
