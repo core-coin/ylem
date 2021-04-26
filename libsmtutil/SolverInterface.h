@@ -343,11 +343,6 @@ public:
 		auto bvSort = _a.sort;
 		return Expression("bvashr", {std::move(_a), std::move(_b)}, bvSort);
 	}
-	friend Expression operator&(Expression _a, Expression _b)
-	{
-		auto bvSort = _a.sort;
-		return Expression("bvand", {std::move(_a), std::move(_b)}, bvSort);
-	}
 	Expression operator()(std::vector<Expression> _arguments) const
 	{
 		smtAssert(
