@@ -298,7 +298,7 @@ namespace picosha3 {
 
         void add_padding() {
             const auto q =
-              buffer_.size() - std::distance(buffer_pos_, buffer_.begin());
+              buffer_.size() - static_cast<size_t>(std::distance(buffer_pos_, buffer_.begin()));
 
             if(padding_type == PaddingType::SHA) {
                 if(q == 1) {
