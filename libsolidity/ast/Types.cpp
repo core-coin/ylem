@@ -415,9 +415,9 @@ BoolResult AddressType::isExplicitlyConvertibleTo(Type const& _convertTo) const
 	else if (m_stateMutability == StateMutability::NonPayable)
 	{
 		if (auto integerType = dynamic_cast<IntegerType const*>(&_convertTo))
-			return (!integerType->isSigned() && integerType->numBits() == 160);
+			return (!integerType->isSigned() && integerType->numBits() == 176);
 		else if (auto fixedBytesType = dynamic_cast<FixedBytesType const*>(&_convertTo))
-			return (fixedBytesType->numBytes() == 20);
+			return (fixedBytesType->numBytes() == 22);
 	}
 
 	return false;
@@ -548,7 +548,7 @@ BoolResult IntegerType::isExplicitlyConvertibleTo(Type const& _convertTo) const
 		return
 			(addressType->stateMutability() != StateMutability::Payable) &&
 			!isSigned() &&
-			(numBits() == 160);
+			(numBits() == 176);
 	else if (auto fixedBytesType = dynamic_cast<FixedBytesType const*>(&_convertTo))
 		return (!isSigned() && (numBits() == fixedBytesType->numBytes() * 8));
 	else if (dynamic_cast<EnumType const*>(&_convertTo))
@@ -962,7 +962,7 @@ BoolResult RationalNumberType::isExplicitlyConvertibleTo(Type const& _convertTo)
 			!isNegative() &&
 			!isFractional() &&
 			integerType() &&
-			(integerType()->numBits() <= 160));
+			(integerType()->numBits() <= 176));
 	else if (category == Category::Integer)
 		return false;
 	else if (auto enumType = dynamic_cast<EnumType const*>(&_convertTo))
@@ -1275,7 +1275,7 @@ BoolResult FixedBytesType::isExplicitlyConvertibleTo(Type const& _convertTo) con
 	else if (auto addressType = dynamic_cast<AddressType const*>(&_convertTo))
 		return
 			(addressType->stateMutability() != StateMutability::Payable) &&
-			(numBytes() == 20);
+			(numBytes() == 22);
 	else if (auto fixedPointType = dynamic_cast<FixedPointType const*>(&_convertTo))
 		return fixedPointType->numBits() == numBytes() * 8;
 
@@ -3058,7 +3058,7 @@ bool FunctionType::leftAligned() const
 unsigned FunctionType::storageBytes() const
 {
 	if (m_kind == Kind::External)
-		return 20 + 4;
+		return 22 + 4;
 	else if (m_kind == Kind::Internal)
 		return 8; // it should really not be possible to create larger programs
 	else

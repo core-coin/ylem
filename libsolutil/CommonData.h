@@ -359,7 +359,7 @@ inline bytes asBytes(std::string const& _b)
 /// The size of the collection object will be unchanged. If it is too small, it will not represent the
 /// value properly, if too big then the additional elements will be zeroed out.
 /// @a Out will typically be either std::string or bytes.
-/// @a T will typically by unsigned, u160, u256 or bigint.
+/// @a T will typically by unsigned, u176, u256 or bigint.
 template <class T, class Out>
 inline void toBigEndian(T _val, Out& o_out)
 {
@@ -373,7 +373,7 @@ inline void toBigEndian(T _val, Out& o_out)
 
 /// Converts a big-endian byte-stream represented on a templated collection to a templated integer value.
 /// @a In will typically be either std::string or bytes.
-/// @a T will typically by unsigned, u160, u256 or bigint.
+/// @a T will typically by unsigned, u176, u256 or bigint.
 template <class T, class In>
 inline T fromBigEndian(In const& _bytes)
 {
@@ -383,7 +383,7 @@ inline T fromBigEndian(In const& _bytes)
 	return ret;
 }
 inline bytes toBigEndian(u256 _val) { bytes ret(32); toBigEndian(_val, ret); return ret; }
-inline bytes toBigEndian(u160 _val) { bytes ret(20); toBigEndian(_val, ret); return ret; }
+inline bytes toBigEndian(u176 _val) { bytes ret(22); toBigEndian(_val, ret); return ret; }
 
 /// Convenience function for toBigEndian.
 /// @returns a byte array just big enough to represent @a _val.

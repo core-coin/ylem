@@ -24,6 +24,13 @@ if(NOT EMSCRIPTEN)
 endif()
 
 eth_add_cxx_compiler_flag_if_supported(-Wimplicit-fallthrough)
+eth_add_cxx_compiler_flag_if_supported(-Wno-overloaded-virtual)
+eth_add_cxx_compiler_flag_if_supported(-Wno-dangling-reference)
+eth_add_cxx_compiler_flag_if_supported(-Wno-uninitialized)
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    eth_add_cxx_compiler_flag_if_supported(-Wno-aggressive-loop-optimizations)
+endif()    
 
 # Prevent the path of the source directory from ending up in the binary via __FILE__ macros.
 eth_add_cxx_compiler_flag_if_supported("-fmacro-prefix-map=${CMAKE_SOURCE_DIR}=/solidity")
@@ -37,7 +44,7 @@ eth_add_cxx_compiler_flag_if_supported(-Wpessimizing-move)
 # -Wredundant-move warns when an implicit move would already be made, so the
 # std::move call is not needed, such as when moving a local variable in a return
 # that is different from the return type.
-eth_add_cxx_compiler_flag_if_supported(-Wredundant-move)
+eth_add_cxx_compiler_flag_if_supported(-Wno-redundant-move)
 
 if (("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU") OR ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang"))
 	# Enables all the warnings about constructions that some users consider questionable,

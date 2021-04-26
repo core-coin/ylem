@@ -234,7 +234,7 @@ void CompilerStack::setSMTSolverChoice(smtutil::SMTSolverChoice _enabledSMTSolve
 	m_enabledSMTSolvers = _enabledSMTSolvers;
 }
 
-void CompilerStack::setLibraries(std::map<std::string, util::h160> const& _libraries)
+void CompilerStack::setLibraries(std::map<std::string, util::h176> const& _libraries)
 {
 	if (m_stackState >= ParsedAndImported)
 		BOOST_THROW_EXCEPTION(CompilerError() << errinfo_comment("Must set libraries before parsing."));

@@ -235,14 +235,14 @@ size_t ContractCompiler::deployLibrary(ContractDefinition const& _contract)
 			// without the need for a shift.
 			let codepos := 11
 			codecopy(codepos, subOffset, subSize)
-			// Check that the first opcode is a PUSH20
-			if iszero(eq(0x73, byte(0, mload(codepos)))) {
+			// Check that the first opcode is a PUSH22
+			if iszero(eq(0x75, byte(0, mload(codepos)))) {
 				mstore(0, <panicSig>)
 				mstore(4, 0)
 				revert(0, 0x24)
 			}
 			mstore(0, address())
-			mstore8(codepos, 0x73)
+			mstore8(codepos, 0x75)
 			return(codepos, subSize)
 		}
 		)")("panicSig", util::selectorFromSignature("Panic(uint256)").str()).render(),
