@@ -1,12 +1,8 @@
 FROM alpine AS build
-MAINTAINER chriseth <chris@ethereum.org>
-#Official solidity docker image
-
-#Establish working directory as solidity
-WORKDIR /solidity
+WORKDIR /ylem
 
 # Build dependencies
-ADD /scripts/install_deps.sh /solidity/scripts/install_deps.sh
+ADD /scripts/install_deps.sh /ylem/scripts/install_deps.sh
 RUN ./scripts/install_deps.sh
 
 #Copy working directory on travis to the image

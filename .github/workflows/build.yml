@@ -12,3 +12,39 @@ jobs:
          mkdir build && cd build
          cmake ..
          make -j4
+  release:
+    if: github.ref == 'refs/heads/master'
+    outputs:
+        tag: ${{steps.version_bump.outputs.tag}}
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Version
+      id: version_bump
+      uses: anothrNick/github-tag-action@1.13.0
+      env:
+        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        DEFAULT_BUMP: "patch"
+        RELEASE_BRANCHES: "master"
+        WITH_V: true
+    - name: Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      with:
+        tag_name: ${{steps.version_bump.outputs.tag}}
+        release_name: ylem ${{steps.version_bump.outputs.tag}}
+        draft: false
+        prerelease: false
+  docker:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Docker
+      run: |
+        docker login ghcr.io -u ${{github.actor}} -p ${{secrets.GITHUB_TOKEN}}
+        docker build --network=host . -f scripts/Dockerfile -t ghcr.io/core-coin/ylem:${{needs.release.outputs.tag}} -t ghcr.io/core-coin/ylem:latest
+        docker push --all-tags ghcr.io/core-coin/ylem
