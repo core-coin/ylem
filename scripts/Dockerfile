@@ -31,5 +31,5 @@ RUN make solc \
 RUN strip solc/solc
 
 FROM scratch
-COPY --from=build /solidity/solc/solc /usr/bin/solc
+COPY --from=build /ylem/solc/solc /usr/bin/solc
 ENTRYPOINT ["/usr/bin/solc"]
