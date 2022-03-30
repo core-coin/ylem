@@ -846,7 +846,7 @@ std::variant<StandardCompiler::InputsAndSettings, Json::Value> StandardCompiler:
 					"Library address is not prefixed with \"0x\"."
 				);
 
-			if (address.length() != 42)
+			if (address.length() != 46)
 				return formatFatalError(
 					"JSONError",
 					"Library address is of invalid length."

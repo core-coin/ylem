@@ -3337,10 +3337,10 @@ void TypeChecker::endVisit(Literal const& _literal)
 		_literal.annotation().type = TypeProvider::address();
 
 		string msg;
-		if (_literal.valueWithoutUnderscores().length() != 42) // "0x" + 40 hex digits
+		if (_literal.valueWithoutUnderscores().length() != 46) // "0x" + 44 hex digits
 			// looksLikeAddress enforces that it is a hex literal starting with "0x"
 			msg =
-				"This looks like an address but is not exactly 40 hex digits. It is " +
+				"This looks like an address but is not exactly 44 hex digits. It is " +
 				to_string(_literal.valueWithoutUnderscores().length() - 2) +
 				" hex digits.";
 		else if (!_literal.passesAddressChecksum())
