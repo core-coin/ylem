@@ -23,7 +23,7 @@
  */
 #include <solc/CommandLineInterface.h>
 
-#include "solidity/BuildInfo.h"
+#include "ylem/BuildInfo.h"
 #include "license.h"
 
 #include <libsolidity/interface/FileReader.h>
