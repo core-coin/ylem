@@ -717,9 +717,9 @@ bool CommandLineInterface::parseLibraryOption(string const& _input)
 				return false;
 			}
 
-			if (addrString.length() != 40)
+			if (addrString.length() != 44)
 			{
-				serr() << "Invalid length for address for library \"" << libName << "\": " << addrString.length() << " instead of 40 characters." << endl;
+				serr() << "Invalid length for address for library \"" << libName << "\": " << addrString.length() << " instead of 44 characters." << endl;
 				return false;
 			}
 			if (!passesAddressChecksum(addrString, false))
@@ -1762,7 +1762,7 @@ bool CommandLineInterface::link()
 	for (auto const& library: m_libraries)
 	{
 		string const& name = library.first;
-		// Library placeholders are 40 hex digits (20 bytes) that start and end with '__'.
+		// Library placeholders are 44 hex digits (22 bytes) that start and end with '__'.
 		// This leaves 36 characters for the library identifier. The identifier used to
 		// be just the cropped or '_'-padded library name, but this changed to
 		// the cropped hex representation of the hash of the library name.
