@@ -165,7 +165,11 @@ string solidity::util::getChecksummedAddress(string const& _addr)
     BigInt remainder = BigInt(mods) % BigInt(97);
     BigInt checksum = BigInt(98) - remainder;
     std::stringstream ss;
-    ss << "0x" << net << checksum << s.substr(4);
+    ss << "0x" << net;
+    if (checksum < 10) {
+        ss << "0";
+    }
+    ss << checksum << s.substr(4);
     return ss.str();
 }
 
