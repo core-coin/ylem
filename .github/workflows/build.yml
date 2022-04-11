@@ -22,6 +22,8 @@ jobs:
     #if: github.ref == 'refs/heads/master'
     needs: build
     runs-on: ubuntu-latest
+    env:
+        name: ylem-linux-x86_64.zip
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -48,13 +50,13 @@ jobs:
     - name: Bash
       run: |
         ls -al
-        zip ylem.zip ylem
+        zip ${{env.name}} ylem -j
     - name: Upload release assets
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./ylem.zip
-        asset_name: ylem.zip
+        asset_path: ./{{env.name}}
+        asset_name: ${{env.name}}
         asset_content_type: application/zip
