@@ -14,9 +14,11 @@ jobs:
       run: sh scripts/install_deps.sh
     - name: Build
       run: |
-        mkdir build && cd build
-        cmake ..
-        make -j4
+        #mkdir build && cd build
+        #cmake ..
+        #make -j4
+        mkdir build && cd build && mkdir solc && cd solc
+        echo "1234" > ylem
     - name: Upload
       #if: github.ref == 'refs/heads/master'
       uses: actions/upload-artifact@v2
@@ -59,6 +61,7 @@ jobs:
         name: ylem-${{matrix.platform.path}}
     - name: Checksum
       run: |
+        ls -al
         cd ylem-${{matrix.platform.path}}
         sha256sum ylem > ylem.checksum
     - name: Upload checksum
