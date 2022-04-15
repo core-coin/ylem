@@ -3,33 +3,41 @@ on: push
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [
+          {os: ubuntu-latest, path: linux-x86_64},
+        ]
     steps:
     - uses: actions/checkout@v2
     - name: Deps
       run: sh scripts/install_deps.sh
     - name: Build
       run: |
-         mkdir build && cd build
-         cmake ..
-         make -j4
+        mkdir build && cd build
+        cmake ..
+        make -j4
     - name: Upload
       #if: github.ref == 'refs/heads/master'
       uses: actions/upload-artifact@v2
       with:
-        name: ylem
+        name: ylem-${{matrix.platform.path}}
         path: build/solc/ylem
   release:
     #if: github.ref == 'refs/heads/master'
     needs: build
     runs-on: ubuntu-latest
-    env:
-        name: ylem-linux-x86_64.zip
+    strategy:
+      matrix:
+        platform: [
+          {os: ubuntu-latest, path: linux-x86_64},
+        ]
     steps:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Version
       id: version_bump
-      uses: anothrNick/github-tag-action@1.13.0
+      uses: anothrNick/github-tag-action@1.38.0
       env:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
         DEFAULT_BUMP: "patch"
@@ -47,16 +55,27 @@ jobs:
         prerelease: false
     - name: Download artifacts
       uses: actions/download-artifact@v2
-    - name: Bash
+      with:
+        name: ylem-${{matrix.platform.path}}
+    - name: Checksum
       run: |
-        ls -al
-        zip ${{env.name}} ylem -j
-    - name: Upload release assets
+        cd ylem-${{matrix.platform.path}}
+        sha256sum ylem > ylem.checksum
+    - name: Upload checksum
       uses: actions/upload-release-asset@v1
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./{{env.name}}
-        asset_name: ${{env.name}}
+        upload_url: ${{steps.create_release.outputs.upload_url}}
+        asset_path: ./ylem-${{matrix.platform.path}}/ylem.checksum
+        asset_name: ylem-${{matrix.platform.path}}.checksum
+        asset_content_type: application/zip
+    - name: Upload binary
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      with:
+        upload_url: ${{steps.create_release.outputs.upload_url}}
+        asset_path: ./ylem-${{matrix.platform.path}}/ylem
+        asset_name: ylem-${{matrix.platform.path}}
         asset_content_type: application/zip
