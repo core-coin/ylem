@@ -10,8 +10,8 @@ jobs:
         ]
     steps:
     - uses: actions/checkout@v2
-    - name: Deps
-      run: sh scripts/install_deps.sh
+    #- name: Deps
+    #  run: sh scripts/install_deps.sh
     - name: Build
       run: |
         #mkdir build && cd build
