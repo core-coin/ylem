@@ -60,17 +60,14 @@ jobs:
       with:
         name: ylem-${{matrix.platform.path}}
     - name: Checksum
-      run: |
-        ls -al
-        cd ylem-${{matrix.platform.path}}
-        sha256sum ylem > ylem.checksum
+      run: sha256sum ylem > ylem.checksum
     - name: Upload checksum
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       with:
         upload_url: ${{steps.create_release.outputs.upload_url}}
-        asset_path: ./ylem-${{matrix.platform.path}}/ylem.checksum
+        asset_path: ./ylem.checksum
         asset_name: ylem-${{matrix.platform.path}}.checksum
         asset_content_type: application/zip
     - name: Upload binary
@@ -79,6 +76,6 @@ jobs:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       with:
         upload_url: ${{steps.create_release.outputs.upload_url}}
-        asset_path: ./ylem-${{matrix.platform.path}}/ylem
+        asset_path: ./ylem
         asset_name: ylem-${{matrix.platform.path}}
         asset_content_type: application/zip
