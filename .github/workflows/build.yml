@@ -10,23 +10,21 @@ jobs:
         ]
     steps:
     - uses: actions/checkout@v2
-    #- name: Deps
-    #  run: sh scripts/install_deps.sh
+    - name: Deps
+      run: sh scripts/install_deps.sh
     - name: Build
       run: |
-        #mkdir build && cd build
-        #cmake ..
-        #make -j4
-        mkdir build && cd build && mkdir solc && cd solc
-        echo "1234" > ylem
+        mkdir build && cd build
+        cmake ..
+        make -j4
     - name: Upload
-      #if: github.ref == 'refs/heads/master'
+      if: github.ref == 'refs/heads/master'
       uses: actions/upload-artifact@v2
       with:
         name: ylem-${{matrix.platform.path}}
         path: build/solc/ylem
   release:
-    #if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/master'
     needs: build
     runs-on: ubuntu-latest
     strategy:
