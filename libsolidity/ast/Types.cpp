@@ -548,7 +548,7 @@ BoolResult IntegerType::isExplicitlyConvertibleTo(Type const& _convertTo) const
 		return
 			(addressType->stateMutability() != StateMutability::Payable) &&
 			!isSigned() &&
-			(numBits() == 160);
+			(numBits() == 176);
 	else if (auto fixedBytesType = dynamic_cast<FixedBytesType const*>(&_convertTo))
 		return (!isSigned() && (numBits() == fixedBytesType->numBytes() * 8));
 	else if (dynamic_cast<EnumType const*>(&_convertTo))
@@ -962,7 +962,7 @@ BoolResult RationalNumberType::isExplicitlyConvertibleTo(Type const& _convertTo)
 			!isNegative() &&
 			!isFractional() &&
 			integerType() &&
-			(integerType()->numBits() <= 160));
+			(integerType()->numBits() <= 176));
 	else if (category == Category::Integer)
 		return false;
 	else if (auto enumType = dynamic_cast<EnumType const*>(&_convertTo))
