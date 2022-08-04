@@ -121,7 +121,7 @@ private:
 	/// list of remappings
 	std::vector<ImportRemapper::Remapping> m_remappings;
 	/// map of library names to addresses
-	std::map<std::string, util::h160> m_libraries;
+	std::map<std::string, util::h176> m_libraries;
 	/// Solidity compiler stack
 	std::unique_ptr<frontend::CompilerStack> m_compiler;
 	CompilerStack::State m_stopAfter = CompilerStack::State::CompilationSuccessful;

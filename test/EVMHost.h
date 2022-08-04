@@ -34,7 +34,7 @@
 
 namespace solidity::test
 {
-using Address = util::h160;
+using Address = util::h176;
 
 class EVMHost: public evmc::MockedHost
 {
