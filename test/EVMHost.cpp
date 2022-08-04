@@ -314,7 +314,7 @@ h176 EVMHost::convertFromEVMC(evmc::address const& _addr)
 evmc::address EVMHost::convertToEVMC(h176 const& _addr)
 {
 	evmc::address a;
-	for (unsigned i = 0; i < 20; ++i)
+	for (unsigned i = 0; i < 22; ++i)
 		a.bytes[i] = _addr[i];
 	return a;
 }

@@ -730,7 +730,7 @@ bool CommandLineInterface::parseLibraryOption(string const& _input)
 			}
 			bytes binAddr = fromHex(addrString);
 			h176 address(binAddr, h176::AlignRight);
-			if (binAddr.size() > 20 || address == h176())
+			if (binAddr.size() > 22 || address == h176())
 			{
 				serr() << "Invalid address for library \"" << libName << "\": " << addrString << endl;
 				return false;
