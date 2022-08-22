@@ -3058,7 +3058,7 @@ bool FunctionType::leftAligned() const
 unsigned FunctionType::storageBytes() const
 {
 	if (m_kind == Kind::External)
-		return 20 + 4;
+		return 22 + 4;
 	else if (m_kind == Kind::Internal)
 		return 8; // it should really not be possible to create larger programs
 	else
