@@ -55,7 +55,7 @@ jobs:
         release_name: ylem ${{steps.version_bump.outputs.tag}}
         draft: false
         prerelease: false
-   pack:
+  pack:
     needs: release
     strategy:
       matrix:
