@@ -12,6 +12,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Deps
+      if: ${{matrix.platform.os}} == 'ubuntu-latest'
       run: sh scripts/install_deps.sh
     - name: Build
       run: |
