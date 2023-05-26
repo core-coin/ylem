@@ -64,6 +64,7 @@ jobs:
 	  {os: rapbian-private, path: linux-arm64},
         ]
     runs-on: ${{matrix.platfrom.os}}
+    steps:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Download artifacts
