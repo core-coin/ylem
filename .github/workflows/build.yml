@@ -2,12 +2,13 @@ name: ylem pipeline
 on: push
 jobs:
   build:
-    runs-on: ubuntu-latest
     strategy:
       matrix:
         platform: [
           {os: ubuntu-latest, path: linux-x86_64},
+	  {os: raspbian-private, path: linux-arm64},
         ]
+    runs-on: ${{matrix.platform.os}}
     steps:
     - uses: actions/checkout@v2
     - name: Deps
@@ -16,7 +17,7 @@ jobs:
       run: |
         mkdir build && cd build
         cmake ..
-        make -j4
+        make -j4 ylem
     - name: Upload
       if: github.ref == 'refs/heads/master'
       uses: actions/upload-artifact@v2
@@ -25,16 +26,17 @@ jobs:
         path: build/solc/ylem
   release:
     if: github.ref == 'refs/heads/master'
-    needs: build
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        platform: [
-          {os: ubuntu-latest, path: linux-x86_64},
-        ]
+    outputs:
+        tag: ${{steps.version_bump.outputs.tag}}
+        url: ${{steps.create_release.outputs.upload_url}}
+    needs: build
     steps:
-    - name: Checkout
+    - name: Checkout repository and submodules
       uses: actions/checkout@v2
+      with:
+        submodules: recursive
+        token: ${{secrets.GITHUB_TOKEN}}
     - name: Version
       id: version_bump
       uses: anothrNick/github-tag-action@1.38.0
@@ -53,6 +55,18 @@ jobs:
         release_name: ylem ${{steps.version_bump.outputs.tag}}
         draft: false
         prerelease: false
+  pack:
+    needs: release
+    strategy:
+      matrix:
+        platform: [
+          {os: ubuntu-latest, path: linux-x86_64},
+	  {os: raspbian-private, path: linux-arm64},
+        ]
+    runs-on: ${{matrix.platform.os}}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
     - name: Download artifacts
       uses: actions/download-artifact@v2
       with:
@@ -68,12 +82,12 @@ jobs:
         asset_path: ./ylem.checksum
         asset_name: ylem-${{matrix.platform.path}}.checksum
         asset_content_type: application/zip
-    - name: Upload binary
+    - name: Upload assets
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       with:
-        upload_url: ${{steps.create_release.outputs.upload_url}}
+        upload_url: ${{steps.release.outputs.upload_url}}
         asset_path: ./ylem
         asset_name: ylem-${{matrix.platform.path}}
         asset_content_type: application/zip
