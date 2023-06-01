@@ -19,13 +19,13 @@ jobs:
         cmake ..
         make -j4 ylem
     - name: Upload
-      #if: github.ref == 'refs/heads/master'
+      if: github.ref == 'refs/heads/master'
       uses: actions/upload-artifact@v2
       with:
         name: ylem-${{matrix.platform.path}}
         path: build/solc/ylem
   release:
-    #if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     outputs:
         tag: ${{steps.version_bump.outputs.tag}}
