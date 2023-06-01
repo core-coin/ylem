@@ -61,9 +61,9 @@ jobs:
       matrix:
         platform: [
           {os: ubuntu-latest, path: linux-x86_64},
-	  {os: rapbian-private, path: linux-arm64},
+	  {os: raspbian-private, path: linux-arm64},
         ]
-    runs-on: ${{matrix.platfrom.os}}
+    runs-on: ${{matrix.platform.os}}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
