@@ -78,7 +78,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       with:
-        upload_url: ${{steps.release.outputs.url}}
+        upload_url: ${{needs.release.outputs.url}}
         asset_path: ./ylem.checksum
         asset_name: ylem-${{matrix.platform.path}}.checksum
         asset_content_type: application/zip
@@ -87,7 +87,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       with:
-        upload_url: ${{steps.release.outputs.url}}
+        upload_url: ${{needs.release.outputs.url}}
         asset_path: ./ylem
         asset_name: ylem-${{matrix.platform.path}}
         asset_content_type: application/zip
