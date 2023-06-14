@@ -41,12 +41,12 @@ string YulUtilFunctions::combineExternalFunctionIdFunction()
 	return m_functionCollector.createFunction(functionName, [&]() {
 		return Whiskers(R"(
 			function <functionName>(addr, selector) -> combined {
-				combined := <shl64>(or(<shl32>(addr), and(selector, 0xffffffff)))
+				combined := <shl48>(or(<shl32>(addr), and(selector, 0xffffffff)))
 			}
 		)")
 		("functionName", functionName)
 		("shl32", shiftLeftFunction(32))
-		("shl64", shiftLeftFunction(64))
+		("shl48", shiftLeftFunction(48))
 		.render();
 	});
 }
@@ -57,14 +57,14 @@ string YulUtilFunctions::splitExternalFunctionIdFunction()
 	return m_functionCollector.createFunction(functionName, [&]() {
 		return Whiskers(R"(
 			function <functionName>(combined) -> addr, selector {
-				combined := <shr64>(combined)
+				combined := <shr48>(combined)
 				selector := and(combined, 0xffffffff)
 				addr := <shr32>(combined)
 			}
 		)")
 		("functionName", functionName)
 		("shr32", shiftRightFunction(32))
-		("shr64", shiftRightFunction(64))
+		("shr48", shiftRightFunction(48))
 		.render();
 	});
 }
@@ -2841,7 +2841,7 @@ string YulUtilFunctions::prepareStoreFunction(Type const& _type)
 				}
 			)");
 			templ("functionName", functionName);
-			templ("prepareBytes", prepareStoreFunction(*TypeProvider::fixedBytes(24)));
+			templ("prepareBytes", prepareStoreFunction(*TypeProvider::fixedBytes(26)));
 			templ("combine", combineExternalFunctionIdFunction());
 			return templ.render();
 		}
@@ -3580,7 +3580,7 @@ string YulUtilFunctions::cleanupFunction(Type const& _type)
 			switch (dynamic_cast<FunctionType const&>(_type).kind())
 			{
 				case FunctionType::Kind::External:
-					templ("body", "cleaned := " + cleanupFunction(FixedBytesType(24)) + "(value)");
+					templ("body", "cleaned := " + cleanupFunction(FixedBytesType(26)) + "(value)");
 					break;
 				case FunctionType::Kind::Internal:
 					templ("body", "cleaned := value");
