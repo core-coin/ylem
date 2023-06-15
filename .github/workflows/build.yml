@@ -80,19 +80,30 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Download artifacts
-      uses: actions/download-artifact@v2
+    - name: Deps
+      run: sh scripts/install_deps.sh
+    - name: Ccache
+      uses: actions/cache@v3
       with:
-        name: ylem-${{matrix.platform.path}}
+        path: ${{ env.CCACHE_DIR }}
+        key: ${{ matrix.platform }}-cache-${{ hashFiles('CMakeLists.txt') }}
+        restore-keys: |
+          ${{ matrix.platform }}-cache-
+    - name: Build
+      run: |
+        export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
+        mkdir build && cd build
+        cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DPROJECT_VERSION=${{needs.release.outputs.tag}} ..
+        make -j4 ylem
     - name: Checksum
-      run: sha256sum ylem > ylem.checksum
+      run: cd build/solc && sha256sum ylem > ylem.checksum
     - name: Upload checksum
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       with:
         upload_url: ${{needs.release.outputs.url}}
-        asset_path: ./ylem.checksum
+        asset_path: ./build/solc/ylem.checksum
         asset_name: ylem-${{matrix.platform.path}}.checksum
         asset_content_type: application/zip
     - name: Upload assets
@@ -101,6 +112,6 @@ jobs:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       with:
         upload_url: ${{needs.release.outputs.url}}
-        asset_path: ./ylem
+        asset_path: ./build/solc/ylem
         asset_name: ylem-${{matrix.platform.path}}
         asset_content_type: application/zip
