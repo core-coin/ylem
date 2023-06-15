@@ -8,15 +8,27 @@ jobs:
           {os: ubuntu-latest, path: linux-x86_64},
 	  {os: raspbian-private, path: linux-arm64},
         ]
+    env:
+      CCACHE_BASEDIR: ${{GITHUB_WORKSPACE}}
+      CCACHE_DIR: ${{env.CCACHE_BASEDIR}}/.ccache
+      CCACHE_COMPRESS: true
+      CCACHE_COMPRESSLEVEL: 6
     runs-on: ${{matrix.platform.os}}
     steps:
     - uses: actions/checkout@v2
     - name: Deps
       run: sh scripts/install_deps.sh
+    - name: Cache hunter
+      uses: actions/cache@v3
+      with:
+        path: ${{ env.CCACHE_DIR }}
+        key: ${{ matrix.platform }}-cache-${{ hashFiles('CMakeLists.txt') }}
+        restore-keys: |
+          ${{ matrix.platform }}-cache-
     - name: Build
       run: |
         mkdir build && cd build
-        cmake ..
+        cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ..
         make -j4 ylem
     - name: Upload
       if: github.ref == 'refs/heads/master'
