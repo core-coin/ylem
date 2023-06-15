@@ -18,7 +18,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Deps
       run: sh scripts/install_deps.sh
-    - name: Cache hunter
+    - name: Ccache
       uses: actions/cache@v3
       with:
         path: ${{ env.CCACHE_DIR }}
@@ -27,6 +27,8 @@ jobs:
           ${{ matrix.platform }}-cache-
     - name: Build
       run: |
+        brew install ccache
+        export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
         mkdir build && cd build
         cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ..
         make -j4 ylem
