@@ -27,7 +27,6 @@ jobs:
           ${{ matrix.platform }}-cache-
     - name: Build
       run: |
-        brew install ccache
         export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
         mkdir build && cd build
         cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ..
