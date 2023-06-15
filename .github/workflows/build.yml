@@ -9,7 +9,7 @@ jobs:
 	  {os: raspbian-private, path: linux-arm64},
         ]
     env:
-      CCACHE_BASEDIR: ${{GITHUB_WORKSPACE}}
+      CCACHE_BASEDIR: ${{ github.workspace }}
       CCACHE_DIR: ${{env.CCACHE_BASEDIR}}/.ccache
       CCACHE_COMPRESS: true
       CCACHE_COMPRESSLEVEL: 6
