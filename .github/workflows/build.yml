@@ -1,5 +1,10 @@
 name: ylem pipeline
 on: push
+env:
+  CCACHE_BASEDIR: ${{ github.workspace }}
+  CCACHE_DIR: ${{ github.workspace }}/.ccache
+  CCACHE_COMPRESS: true
+  CCACHE_COMPRESSLEVEL: 6
 jobs:
   build:
     strategy:
@@ -8,11 +13,6 @@ jobs:
           {os: ubuntu-latest, path: linux-x86_64},
 	  {os: raspbian-private, path: linux-arm64},
         ]
-    env:
-      CCACHE_BASEDIR: ${{ github.workspace }}
-      CCACHE_DIR: ${{ github.workspace }}/.ccache
-      CCACHE_COMPRESS: true
-      CCACHE_COMPRESSLEVEL: 6
     runs-on: ${{matrix.platform.os}}
     steps:
     - uses: actions/checkout@v2
