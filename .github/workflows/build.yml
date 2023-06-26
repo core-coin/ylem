@@ -31,12 +31,6 @@ jobs:
         mkdir build && cd build
         cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ..
         make -j4 ylem
-    - name: Upload
-      if: github.ref == 'refs/heads/master'
-      uses: actions/upload-artifact@v2
-      with:
-        name: ylem-${{matrix.platform.path}}
-        path: build/solc/ylem
   release:
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
@@ -92,6 +86,7 @@ jobs:
     - name: Build
       run: |
         export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
+        echo -n "" >prerelease.txt
         mkdir build && cd build
         cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DPROJECT_VERSION=${{needs.release.outputs.tag}} ..
         make -j4 ylem
