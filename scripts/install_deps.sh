@@ -106,6 +106,7 @@ case $(uname -s) in
         brew update
         brew install boost
         brew install cmake
+        brew install ccache
         if [ "$CI" = true ]; then
             brew upgrade cmake
         else
