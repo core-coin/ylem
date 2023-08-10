@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iomanip>
 #include <sstream>
+#include <typle>
 
 namespace picosha3 {
     constexpr size_t bits_to_bytes(size_t bits) { return bits / 8; }
@@ -202,6 +203,7 @@ namespace picosha3 {
 
         template <typename OutIter>
         void get_hash_bytes(OutIter first, OutIter last) {
+			std::ignore = last;
             if(!is_finished_) {
                 throw std::runtime_error("Not finished!");
             }
@@ -222,6 +224,7 @@ namespace picosha3 {
             static_assert(
               sizeof(typename std::iterator_traits<OutIter>::value_type) == 1,
               "The size of output iterator value_type must be one byte.");
+			std::ignore = out_last;
             process(in_first, in_last);
             finish();
             std::copy(hash_.cbegin(), hash_.cend(), out_first);
