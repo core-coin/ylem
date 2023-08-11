@@ -97,7 +97,7 @@ case $(uname -s) in
                 echo "Installing solidity dependencies on macOS 11.0 / 11.1 / 11.2 Big Sur."
                 ;;
             *)
-                echo "Installing solidity dependecies on macOS " $(sw_vers -productVersion | awk -F . '{print $1"."$2}')
+                echo "Installing solidity dependecies on macOS" $(sw_vers -productVersion | awk -F . '{print $1"."$2}')
                 ;;
         esac
 
