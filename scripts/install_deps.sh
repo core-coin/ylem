@@ -97,9 +97,7 @@ case $(uname -s) in
                 echo "Installing solidity dependencies on macOS 11.0 / 11.1 / 11.2 Big Sur."
                 ;;
             *)
-                echo "Unsupported macOS version."
-                echo "We only support Mavericks, Yosemite, El Capitan, Sierra, High Sierra, Mojave, Catalina, and Big Sur."
-                exit 1
+                echo "Installing solidity dependecies on macOS" $(sw_vers -productVersion | awk -F . '{print $1"."$2}')
                 ;;
         esac
 
@@ -108,6 +106,7 @@ case $(uname -s) in
         brew update
         brew install boost
         brew install cmake
+        brew install ccache
         if [ "$CI" = true ]; then
             brew upgrade cmake
         else

@@ -201,7 +201,7 @@ namespace picosha3 {
         }
 
         template <typename OutIter>
-        void get_hash_bytes(OutIter first, OutIter last) {
+        void get_hash_bytes(OutIter first, [[maybe_unused]] OutIter last) {
             if(!is_finished_) {
                 throw std::runtime_error("Not finished!");
             }
@@ -215,7 +215,7 @@ namespace picosha3 {
 
         template <typename InIter, typename OutIter>
         void operator()(InIter in_first, InIter in_last, OutIter out_first,
-                        OutIter out_last) {
+                        [[maybe_unused]] OutIter out_last) {
             static_assert(
               sizeof(typename std::iterator_traits<InIter>::value_type) == 1,
               "The size of input iterator value_type must be one byte.");
