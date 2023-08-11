@@ -6,7 +6,6 @@
 #include <fstream>
 #include <iomanip>
 #include <sstream>
-#include <tuple>
 
 namespace picosha3 {
     constexpr size_t bits_to_bytes(size_t bits) { return bits / 8; }
@@ -202,8 +201,7 @@ namespace picosha3 {
         }
 
         template <typename OutIter>
-        void get_hash_bytes(OutIter first, OutIter last) {
-			std::ignore = last;
+        void get_hash_bytes(OutIter first, [[maybe_unused]] OutIter last) {
             if(!is_finished_) {
                 throw std::runtime_error("Not finished!");
             }
@@ -217,14 +215,13 @@ namespace picosha3 {
 
         template <typename InIter, typename OutIter>
         void operator()(InIter in_first, InIter in_last, OutIter out_first,
-                        OutIter out_last) {
+                        [[maybe_unused]] OutIter out_last) {
             static_assert(
               sizeof(typename std::iterator_traits<InIter>::value_type) == 1,
               "The size of input iterator value_type must be one byte.");
             static_assert(
               sizeof(typename std::iterator_traits<OutIter>::value_type) == 1,
               "The size of output iterator value_type must be one byte.");
-			std::ignore = out_last;
             process(in_first, in_last);
             finish();
             std::copy(hash_.cbegin(), hash_.cend(), out_first);
