@@ -10,10 +10,7 @@ jobs:
     strategy:
       matrix:
         platform: [
-          #{os: ubuntu-latest, path: linux-x86_64},
-          #{os: raspbian-private, path: linux-arm64},
-          #{os: macos-latest, path: darwin-x86_64},
-          {os: windows-latest, path: windows-x86_64},
+          {os: ubuntu-latest, path: linux-x86_64},
         ]
     runs-on: ${{matrix.platform.os}}
     steps:
@@ -25,21 +22,13 @@ jobs:
         key: ${{ matrix.platform }}-cache-${{ hashFiles('CMakeLists.txt') }}
         restore-keys: |
           ${{ matrix.platform }}-cache-
+    - name: Deps
+      run: sh scripts/install_deps.sh
     - name: Build
-      if: ${{ matrix.platform.os != 'windows-latest' }}
       run: |
-        sh scripts/install_deps.sh
         export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
         mkdir build && cd build
-        cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ..
-        make -j4 ylem
-    - name: Enable NMake
-      uses: ilammy/msvc-dev-cmd@v1
-    - name: Build
-      if: ${{ matrix.platform.os == 'windows-latest' }}
-      run: |
-        choco install ccache boost-msvc-14.3
-        mkdir build && cd build && cmake .. -G "NMake Makefiles" -DCMAKE_CXX_COMPILER_LAUNCHER=ccache && nmake ylem
+        cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache .. && make -j4 ylem
   release:
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
@@ -76,16 +65,15 @@ jobs:
     strategy:
       matrix:
         platform: [
-          {os: ubuntu-latest, path: linux-x86_64},
-	      {os: raspbian-private, path: linux-arm64},
-          {os: macos-latest, path: darwin-x86_64},
+          {os: ubuntu-latest, path: linux-x86_64, artifact: ylem},
+	      {os: raspbian-private, path: linux-arm64, artifact: ylem},
+          {os: macos-latest, path: darwin-x86_64, artifact: ylem},
+          {os: windows-latest, path: windows-x86_6, artifact: ylem.exe},
         ]
     runs-on: ${{matrix.platform.os}}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Deps
-      run: sh scripts/install_deps.sh
     - name: Ccache
       uses: actions/cache@v3
       with:
@@ -93,15 +81,30 @@ jobs:
         key: ${{ matrix.platform }}-cache-${{ hashFiles('CMakeLists.txt') }}
         restore-keys: |
           ${{ matrix.platform }}-cache-
+    - name: Deps
+      if: ${{ matrix.platform.os != 'windows-latest' }}
+      run: sh scripts/install_deps.sh
+    - name: Deps
+      if: ${{ matrix.platform.os == 'windows-latest' }}
+      run: choco install ccache boost-msvc-14.3
+    - name: Enable NMake
+      uses: ilammy/msvc-dev-cmd@v1
+    - name: Build
+      if: ${{ matrix.platform.os == 'windows-latest' }}
+      run: |
+        echo -n "" >prerelease.txt
+        mkdir build && cd build
+        cmake .. -G "NMake Makefiles" -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DPROJECT_VERSION=${{needs.release.outputs.tag}}
+        nmake ylem
     - name: Build
       run: |
         export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
         echo -n "" >prerelease.txt
         mkdir build && cd build
-        cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DPROJECT_VERSION=${{needs.release.outputs.tag}} ..
+        cmake .. -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DPROJECT_VERSION=${{needs.release.outputs.tag}}
         make -j4 ylem
     - name: Checksum
-      run: cd build/solc && sha256sum ylem > ylem.checksum
+      run: cd build/solc && sha256sum ${{ matrix.platform.artifact }} > ylem.checksum
     - name: Upload checksum
       uses: actions/upload-release-asset@v1
       env:
@@ -117,6 +120,6 @@ jobs:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       with:
         upload_url: ${{needs.release.outputs.url}}
-        asset_path: ./build/solc/ylem
+        asset_path: ./build/solc/${{ matrix.platform.artifact }}
         asset_name: ylem-${{matrix.platform.path}}
         asset_content_type: application/zip
