@@ -6,9 +6,7 @@ $progressPreference = "silentlyContinue"
 if ( -not (Test-Path "$PSScriptRoot\..\deps\boost") ) {
   New-Item -ItemType Directory -Force -Path "$PSScriptRoot\..\deps"
 
-  Invoke-WebRequest -URI "https://github.com/Kitware/CMake/releases/download/v3.18.2/cmake-3.18.2-win64-x64.zip" -OutFile cmake.zip
-  tar -xf cmake.zip
-  mv cmake-3.18.2-win64-x64 "$PSScriptRoot\..\deps\cmake"
+  choco install ccache
 
   Invoke-WebRequest -URI "https://dl.bintray.com/boostorg/release/1.74.0/source/boost_1_74_0.zip" -OutFile boost.zip
   tar -xf boost.zip

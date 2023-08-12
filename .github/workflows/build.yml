@@ -18,12 +18,9 @@ jobs:
     runs-on: ${{matrix.platform.os}}
     steps:
     - uses: actions/checkout@v2
+      #run: sh scripts/install_deps.sh
     - name: Deps
-      if: ${{ matrix.platform.os }} != "windows-latest"
-      run: sh scripts/install_deps.sh
-    - name: Deps Windows
-      if: ${{ matrix.platform.os }} == "windows-latest"
-      run: ./scripts/install_deps.bat
+      run: .\scripts\install_deps.ps1
     - name: Ccache
       uses: actions/cache@v3
       with:
@@ -33,7 +30,7 @@ jobs:
           ${{ matrix.platform }}-cache-
     - name: Build
       run: |
-        export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
+        #export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
         mkdir build && cd build
         cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ..
         make -j4 ylem
