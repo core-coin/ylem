@@ -22,7 +22,7 @@ jobs:
       if: ${{ matrix.platform.os }} != "windows-latest"
       run: sh scripts/install_deps.sh
     - name: Deps Windows
-      if: ${{ matrix-platform.os }} == "windows-latest"
+      if: ${{ matrix.platform.os }} == "windows-latest"
       run: bat scripts/install_deps.bat
     - name: Ccache
       uses: actions/cache@v3
