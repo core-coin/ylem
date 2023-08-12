@@ -34,7 +34,7 @@ jobs:
         cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ..
         make -j4 ylem
     - name: Enable NMake
-    - uses: ilammy/msvc-dev-cmd@v1
+      uses: ilammy/msvc-dev-cmd@v1
     - name: Boost
       if: ${{ matrix.platform.os == 'windows-latest' }}
       run: |
