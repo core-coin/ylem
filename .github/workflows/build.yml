@@ -30,7 +30,7 @@ jobs:
         mkdir build && cd build
         cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache .. && make -j4 ylem
   release:
-    if: github.ref == 'refs/heads/master'
+    #if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     outputs:
         tag: ${{steps.version_bump.outputs.tag}}
@@ -97,6 +97,7 @@ jobs:
         cmake .. -G "NMake Makefiles" -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DPROJECT_VERSION=${{needs.release.outputs.tag}}
         nmake ylem
     - name: Build
+      if: ${{ matrix.platform.os != 'windows-latest' }}
       run: |
         export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
         echo -n "" >prerelease.txt
