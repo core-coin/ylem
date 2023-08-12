@@ -99,6 +99,7 @@ jobs:
         echo -n "" >prerelease.txt
         mkdir build && cd build
         cmake .. -G "NMake Makefiles" -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DPROJECT_VERSION=${{needs.release.outputs.tag}}
+        cat ../libsolidity/interface/Version.cpp
         nmake ylem
     - name: Build
       if: ${{ matrix.platform.os != 'windows-latest' }}
