@@ -44,7 +44,7 @@ jobs:
           mingw-w64-x86_64-cmake
           mingw-w64-x86_64-gcc
     - name: Build Windows
-      if: ${{ matrix.platform == 'windows-latest' }}
+      if: ${{ matrix.platform.os == 'windows-latest' }}
       shell: msys2 {0}
       run: |
         choco install ccache
