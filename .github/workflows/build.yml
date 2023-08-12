@@ -43,15 +43,19 @@ jobs:
           mingw-w64-x86_64-make
           mingw-w64-x86_64-cmake
           mingw-w64-x86_64-gcc
-    - name: Build Windows
+    - name: Boost
       if: ${{ matrix.platform.os == 'windows-latest' }}
       shell: msys2 {0}
       run: |
         mkdir -p deps/boost
         wget https://boostorg.jfrog.io/artifactory/main/release/1.83.0/source/boost_1_83_0.tar.gz -O boost.tar.gz
         tar -xvf boost.tar.gz
-        cd boost_1_74_0 && .\bootstrap.bat
+        cd boost_1_83_0 && .\bootstrap.bat
         .\b2 -j4 -d0 link=static runtime-link=static variant=release threading=multi address-model=64 --with-filesystem --with-system --with-program_options --with-test --prefix="deps\boost" install
+    - name: Build Win
+      if: ${{ matrix.platform.os == 'windows-latest' }}
+      shell: msys2 {0}
+      run: |
         mkdir build && cd build && cmake .. -G "MinGW Makefiles" -DCMAKE_CXX_COMPILER_LAUNCHER=ccache && mingw32-make ylem
   release:
     if: github.ref == 'refs/heads/master'
