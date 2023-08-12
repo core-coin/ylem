@@ -35,10 +35,10 @@ jobs:
         make -j4 ylem
     - name: Enable NMake
       uses: ilammy/msvc-dev-cmd@v1
-    - name: Boost
+    - name: Build
       if: ${{ matrix.platform.os == 'windows-latest' }}
       run: |
-        choco install ccache
+        choco install ccache boost-msvc-14.3
         mkdir build && cd build && cmake .. -G "NMake Makefiles" -DCMAKE_CXX_COMPILER_LAUNCHER=ccache && nmake ylem
   release:
     if: github.ref == 'refs/heads/master'
