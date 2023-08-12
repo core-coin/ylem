@@ -52,7 +52,7 @@ jobs:
         WITH_V: false
     - name: Release
       id: create_release
-      uses: actions/create-release@v1
+      uses: actions/create-release@latest
       env:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       with:
@@ -81,14 +81,18 @@ jobs:
         key: ${{ matrix.platform }}-cache-${{ hashFiles('CMakeLists.txt') }}
         restore-keys: |
           ${{ matrix.platform }}-cache-
+    - name: Enable NMake
+      if: ${{ matrix.platform.os == 'windows-latest' }}
+      uses: ilammy/msvc-dev-cmd@v1
     - name: Deps
       if: ${{ matrix.platform.os != 'windows-latest' }}
-      run: sh scripts/install_deps.sh
+      run: |
+        sh scripts/install_deps.sh
     - name: Deps
       if: ${{ matrix.platform.os == 'windows-latest' }}
-      run: choco install ccache boost-msvc-14.3
-    - name: Enable NMake
-      uses: ilammy/msvc-dev-cmd@v1
+      run: |
+        choco install ccache
+        ./scripts/install_deps.ps1
     - name: Build
       if: ${{ matrix.platform.os == 'windows-latest' }}
       run: |
@@ -99,7 +103,7 @@ jobs:
     - name: Build
       if: ${{ matrix.platform.os != 'windows-latest' }}
       run: |
-        export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
+        export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:/opt/local/libexec/ccache:/opt/local/bin:/opt/local/sbin:$PATH"
         echo -n "" >prerelease.txt
         mkdir build && cd build
         cmake .. -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DPROJECT_VERSION=${{needs.release.outputs.tag}}
