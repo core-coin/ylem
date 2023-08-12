@@ -47,7 +47,6 @@ jobs:
       if: ${{ matrix.platform.os == 'windows-latest' }}
       shell: msys2 {0}
       run: |
-        choco install ccache
         mkdir -p deps/boost
         wget https://boostorg.jfrog.io/artifactory/main/release/1.83.0/source/boost_1_83_0.zip -O boost.zip
         tar -xf boost.zip
