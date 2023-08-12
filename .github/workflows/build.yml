@@ -10,15 +10,20 @@ jobs:
     strategy:
       matrix:
         platform: [
-          {os: ubuntu-latest, path: linux-x86_64},
-          {os: raspbian-private, path: linux-arm64},
-          {os: macos-latest, path: darwin-x86_64},
+          #{os: ubuntu-latest, path: linux-x86_64},
+          #{os: raspbian-private, path: linux-arm64},
+          #{os: macos-latest, path: darwin-x86_64},
+          {os: windows-latest, path: windows-x86_64},
         ]
     runs-on: ${{matrix.platform.os}}
     steps:
     - uses: actions/checkout@v2
     - name: Deps
+      if: ${{ matrix.platform.os }} != "windows-latest"
       run: sh scripts/install_deps.sh
+    - name: Deps Windows
+      if: ${{ matrix-platform.os }} == "windows-latest"
+      run: bat scripts/install_deps.bat
     - name: Ccache
       uses: actions/cache@v3
       with:
