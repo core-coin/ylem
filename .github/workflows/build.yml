@@ -18,9 +18,6 @@ jobs:
     runs-on: ${{matrix.platform.os}}
     steps:
     - uses: actions/checkout@v2
-      #run: sh scripts/install_deps.sh
-    - name: Deps
-      run: .\scripts\install_deps.ps1
     - name: Ccache
       uses: actions/cache@v3
       with:
@@ -29,11 +26,34 @@ jobs:
         restore-keys: |
           ${{ matrix.platform }}-cache-
     - name: Build
+      if: ${{ matrix.platform.os != 'windows-latest' }}
       run: |
-        #export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
+        sh scripts/install_deps.sh
+        export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
         mkdir build && cd build
         cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ..
         make -j4 ylem
+    - name: Setup Win
+      if: ${{ matrix.platform.os == 'windows-latest' }}
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: mingw64
+        update: true
+        install: >
+          mingw-w64-x86_64-make
+          mingw-w64-x86_64-cmake
+          mingw-w64-x86_64-gcc
+    - name: Build Windows
+      if: ${{ matrix.platform == 'windows-latest' }}
+      shell: msys2 {0}
+      run: |
+        choco install ccache
+        mkdir -p deps/boost
+        wget https://boostorg.jfrog.io/artifactory/main/release/1.83.0/source/boost_1_83_0.zip -O boost.zip
+        tar -xf boost.zip
+        cd boost_1_74_0 && .\bootstrap.bat
+        .\b2 -j4 -d0 link=static runtime-link=static variant=release threading=multi address-model=64 --with-filesystem --with-system --with-program_options --with-test --prefix="deps\boost" install
+        mkdir build && cd build && cmake .. -G "MinGW Makefiles" -DCMAKE_CXX_COMPILER_LAUNCHER=ccache && mingw32-make ylem
   release:
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
