@@ -33,30 +33,13 @@ jobs:
         mkdir build && cd build
         cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ..
         make -j4 ylem
-    - name: Setup Win
-      if: ${{ matrix.platform.os == 'windows-latest' }}
-      uses: msys2/setup-msys2@v2
-      with:
-        msystem: mingw64
-        update: true
-        install: >
-          mingw-w64-x86_64-make
-          mingw-w64-x86_64-cmake
-          mingw-w64-x86_64-gcc
+    - name: Enable NMake
+    - uses: ilammy/msvc-dev-cmd@v1
     - name: Boost
       if: ${{ matrix.platform.os == 'windows-latest' }}
-      shell: msys2 {0}
       run: |
-        mkdir -p deps/boost
-        wget https://boostorg.jfrog.io/artifactory/main/release/1.83.0/source/boost_1_83_0.tar.gz -O boost.tar.gz
-        tar -xf boost.tar.gz && ls -al
-        cd boost_1_83_0 && ls -al && .\bootstrap.sh
-        .\b2 -j4 -d0 link=static runtime-link=static variant=release threading=multi address-model=64 --with-filesystem --with-system --with-program_options --with-test --prefix="deps\boost" install
-    - name: Build Win
-      if: ${{ matrix.platform.os == 'windows-latest' }}
-      shell: msys2 {0}
-      run: |
-        mkdir build && cd build && cmake .. -G "MinGW Makefiles" -DCMAKE_CXX_COMPILER_LAUNCHER=ccache && mingw32-make ylem
+        choco install ccache
+        mkdir build && cd build && cmake .. -G "NMake Makefiles" -DCMAKE_CXX_COMPILER_LAUNCHER=ccache && nmake ylem
   release:
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
