@@ -99,7 +99,7 @@ jobs:
       run: |
         echo -n "" >prerelease.txt
         mkdir build && cd build
-        ls -al ${{env.BOOST_ROOT}}
+        dir ${{env.BOOST_ROOT}}
         cmake .. -G "NMake Makefiles" -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DPROJECT_VERSION=${{needs.release.outputs.tag}} -DBoost_INCLUDE_DIR=${{env.BOOST_ROOT}}
         nmake ylem
       env:
