@@ -5,7 +5,7 @@ env:
   CCACHE_DIR: ${{ github.workspace }}/.ccache
   CCACHE_COMPRESS: true
   CCACHE_COMPRESSLEVEL: 6
-  BOOST_INCLUDE_DIR: ${{ github.workspace }}/boost
+  BOOST_ROOT: ${{ github.workspace }}/boost
 jobs:
   build:
     strategy:
@@ -93,13 +93,15 @@ jobs:
         mkdir -p ${{ env.BOOST_INCLUDE_DIR }}
         cd boost_1_83_0
         .\bootstrap.bat
-        .\b2 -j4 -d0 link=static runtime-link=static variant=release threading=multi address-model=64 --with-filesystem --with-system --with-program_options --with-test --prefix=${{ env.BOOST_INCLUDE_DIR }} install
+        .\b2 -j4 -d0 link=static runtime-link=static variant=release threading=multi address-model=64 --with-filesystem --with-system --with-program_options --with-test --prefix=${{ env.BOOST_ROOT }} install
     - name: Build
       if: ${{ matrix.platform.os == 'windows-latest' }}
       run: |
         echo -n "" >prerelease.txt
         mkdir build && cd build
-        cmake .. -G "NMake Makefiles" -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DBoost_INCLUDE_DIR=${{ env.BOOST_INCLUDE_DIR }}
+        cmake .. -G "NMake Makefiles" -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DPROJECT_VERSION=${{needs.release.outputs.tag}} \
+        -DBoost_INCLUDE_DIR=${{ env.BOOST_ROOT }}/include \
+        -DBoost_LIBRARY_DIRS=${{ env.BOOST_ROOT }}/lib
         nmake ylem
       env:
         BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
