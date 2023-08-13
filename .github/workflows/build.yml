@@ -5,7 +5,6 @@ env:
   CCACHE_DIR: ${{ github.workspace }}/.ccache
   CCACHE_COMPRESS: true
   CCACHE_COMPRESSLEVEL: 6
-  BOOST_ROOT: ${{ github.workspace }}/boost
 jobs:
   build:
     strategy:
@@ -86,20 +85,23 @@ jobs:
       run: sh scripts/install_deps.sh
     - name: Deps
       if: ${{ matrix.platform.os == 'windows-latest' }}
-      run: |
-        choco install ccache wget
-        wget https://boostorg.jfrog.io/artifactory/main/release/1.83.0/source/boost_1_83_0.tar.gz -O boost.tar.gz
-        tar xf boost.tar.gz
-        mkdir -p ${{ env.BOOST_ROOT }}
-        cd boost_1_83_0
-        .\bootstrap.bat
-        .\b2 -j4 -d0 link=static runtime-link=static variant=release threading=multi address-model=64 --with-filesystem --with-system --with-program_options --with-test --prefix=${{ env.BOOST_ROOT }} install
+      run: choco install ccache wget
+    - name: Build Boost
+      id: boost
+      uses: egor-tensin/build-boost@v1
+      with:
+        version: 1.71.0
+        libraries: filesystem program_options system
+        platform: x64
+        configuration: Release
+        static: 1
+        toolset: msvc
     - name: Build
       if: ${{ matrix.platform.os == 'windows-latest' }}
       run: |
         echo -n "" >prerelease.txt
         mkdir build && cd build
-        cmake .. -G "NMake Makefiles" -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DPROJECT_VERSION=${{needs.release.outputs.tag}} -DBoost_INCLUDE_DIR=${{ env.BOOST_ROOT }}/include -DBoost_LIBRARY_DIRS=${{ env.BOOST_ROOT }}/lib
+        cmake .. -G "NMake Makefiles" -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DPROJECT_VERSION=${{needs.release.outputs.tag}} -DBoost_ROOT=$${{steps.boost.outputs.root}} -DBoost_INCLUDE_DIR=${{steps.boost.outputs.root}}\include -DBoost_LIBRARY_DIRS=${{steps.boost.outputs.root}}\lib
         nmake ylem
       env:
         BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
