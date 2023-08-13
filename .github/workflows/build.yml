@@ -86,7 +86,7 @@ jobs:
     - name: Deps
       if: ${{ matrix.platform.os == 'windows-latest' }}
       run: |
-        choco install ccache
+        choco install ccache wget
         wget https://boostorg.jfrog.io/artifactory/main/release/1.83.0/source/boost_1_83_0.tar.gz -O boost.tar.gz
         tar xf boost.tar.gz
         mkdir -p deps/
