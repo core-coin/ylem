@@ -85,17 +85,14 @@ jobs:
       run: sh scripts/install_deps.sh
     - name: Deps
       if: ${{ matrix.platform.os == 'windows-latest' }}
-      run: choco install ccache
-    - name: Install boost
-      if: ${{ matrix.platform.os == 'windows-latest' }}
-      uses: MarkusJx/install-boost@v2.4.1
-      id: install-boost
-      with:
-        boost_version: 1.81.0
-        platform_version: 2022
-        toolset: msvc
-        boost_install_dir: C:\boost
-        link: static
+      run: |
+        choco install ccache
+        wget https://boostorg.jfrog.io/artifactory/main/release/1.83.0/source/boost_1_83_0.tar.gz -O boost.tar.gz
+        tar xf boost.tar.gz
+        mkdir -p deps/
+        cd boost_1_83_0
+        .\bootstrap.bat
+        .\b2 -j4 -d0 link=static runtime-link=static variant=release threading=multi address-model=64 --with-filesystem --with-system --with-program_options --with-test install
     - name: Build
       if: ${{ matrix.platform.os == 'windows-latest' }}
       run: |
