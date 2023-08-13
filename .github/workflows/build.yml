@@ -9,9 +9,7 @@ jobs:
   build:
     strategy:
       matrix:
-        platform: [
-          {os: ubuntu-latest, path: linux-x86_64},
-        ]
+        platform: [{os: ubuntu-latest, path: linux-x86_64}]
     runs-on: ${{matrix.platform.os}}
     steps:
     - uses: actions/checkout@v2
@@ -20,8 +18,7 @@ jobs:
       with:
         path: ${{ env.CCACHE_DIR }}
         key: ${{ matrix.platform.os }}-cache-${{ hashFiles('CMakeLists.txt') }}
-        restore-keys: |
-          ${{ matrix.platform.os }}-cache-
+        restore-keys: ${{ matrix.platform.os }}-cache-
     - name: Deps
       run: sh scripts/install_deps.sh
     - name: Build
@@ -79,8 +76,7 @@ jobs:
       with:
         path: ${{ env.CCACHE_DIR }}
         key: ${{ matrix.platform.os }}-cache-${{ hashFiles('CMakeLists.txt') }}
-        restore-keys: |
-          ${{ matrix.platform.os }}-cache-
+        restore-keys: ${{ matrix.platform.os }}-cache-
     - name: Enable NMake
       if: ${{ matrix.platform.os == 'windows-latest' }}
       uses: ilammy/msvc-dev-cmd@v1
@@ -96,8 +92,7 @@ jobs:
       id: install-boost
       with:
         boost_version: 1.83.0
-        toolset: msvc14.3
-	platform_version: 2022
+        platform_version: 2022
         boost_install_dir: C:\boost
         link: static
     - name: Build
@@ -105,8 +100,7 @@ jobs:
       run: |
         echo -n "" >prerelease.txt
         mkdir build && cd build
-        cmake .. -G "NMake Makefiles" -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-	-DPROJECT_VERSION=${{needs.release.outputs.tag}} -DBoost_INCLUDE_DIR=${{steps.install-boost.outputs.BOOST_ROOT}}/include -DBoost_LIBRARY_DIRS=${{steps.install-boost.outputs.BOOST_ROOT}}/lib
+        cmake .. -G "NMake Makefiles" -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         nmake ylem
       env:
         BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
