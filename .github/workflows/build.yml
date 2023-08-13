@@ -87,6 +87,7 @@ jobs:
       if: ${{ matrix.platform.os == 'windows-latest' }}
       run: choco install ccache wget
     - name: Build Boost
+      if: ${{ matrix.platform.os == 'windows-latest' }}
       id: boost
       uses: egor-tensin/build-boost@v1
       with:
