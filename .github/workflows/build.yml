@@ -97,10 +97,9 @@ jobs:
     - name: Build
       if: ${{ matrix.platform.os == 'windows-latest' }}
       run: |
-        dir ${{env.BOOST_DIR}}
         echo -n "" >prerelease.txt
         mkdir build && cd build
-        cmake .. -G "NMake Makefiles" -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DPROJECT_VERSION=${{needs.release.outputs.tag}} -DBoost_INCLUDE_DIR=${{env.BOOST_ROOT}}\include -DBoost_LIBRARY_DIRS=${{env.BOOST_ROOT}}\lib
+        cmake .. -G "NMake Makefiles" -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DPROJECT_VERSION=${{needs.release.outputs.tag}} -DBoost_INCLUDE_DIR=${{env.BOOST_ROOT}}\include -DBoost_LIBRARY_DIRS=${{env.BOOST_ROOT}}\lib -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
         nmake ylem
     - name: Build
       if: ${{ matrix.platform.os != 'windows-latest' }}
