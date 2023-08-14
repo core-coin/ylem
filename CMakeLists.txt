@@ -23,6 +23,8 @@ else()
 	set(PROJECT_VERSION)
 endif()
 
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+
 # OSX target needed in order to support std::visit
 set(CMAKE_OSX_DEPLOYMENT_TARGET "10.14")
 project(ylem VERSION ${PROJECT_VERSION} LANGUAGES C CXX)

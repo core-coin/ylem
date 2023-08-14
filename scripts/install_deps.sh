@@ -104,16 +104,7 @@ case $(uname -s) in
         # Check for Homebrew install and abort if it is not installed.
         brew -v > /dev/null 2>&1 || { echo >&2 "ERROR - solidity requires a Homebrew install.  See https://brew.sh."; exit 1; }
         brew update
-        brew install boost
-        brew install cmake
-        brew install ccache
-        brew install coreutils
-        if [ "$CI" = true ]; then
-            brew upgrade cmake
-        else
-            brew upgrade
-        fi
-
+        brew install boost ccache coreutils
         ;;
 
 #------------------------------------------------------------------------------
@@ -214,18 +205,7 @@ case $(uname -s) in
 
                 # Install "normal packages"
                 sudo apt-get -y update
-                sudo apt-get -y install \
-                    build-essential \
-                    cmake \
-                    g++ \
-                    gcc \
-                    git \
-                    libboost-all-dev \
-                    unzip \
-                    ccache \
-                    "$install_z3"
-
-
+                sudo apt-get -y install libboost-all-dev ccache "$install_z3"
                 ;;
 
 #------------------------------------------------------------------------------
@@ -331,14 +311,7 @@ case $(uname -s) in
                         ;;
                 esac
 
-                sudo apt-get -y update
-                sudo apt-get -y install \
-                    build-essential \
-                    cmake \
-                    git \
-                    libboost-all-dev \
-                    ccache \
-                    "$install_z3"
+                sudo apt-get -y install libboost-all-dev ccache "$install_z3"
                 if [ "$CI" = true ]; then
                     # install Z3 from PPA if the distribution does not provide it
                     if ! dpkg -l libz3-dev > /dev/null 2>&1

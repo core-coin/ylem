@@ -5,33 +5,28 @@ env:
   CCACHE_DIR: ${{ github.workspace }}/.ccache
   CCACHE_COMPRESS: true
   CCACHE_COMPRESSLEVEL: 6
+  BOOST_ROOT: C:\boost
 jobs:
   build:
     strategy:
       matrix:
-        platform: [
-          {os: ubuntu-latest, path: linux-x86_64},
-          {os: raspbian-private, path: linux-arm64},
-          {os: macos-latest, path: darwin-x86_64},
-        ]
+        platform: [{os: ubuntu-latest, path: linux-x86_64}]
     runs-on: ${{matrix.platform.os}}
     steps:
     - uses: actions/checkout@v2
-    - name: Deps
-      run: sh scripts/install_deps.sh
     - name: Ccache
       uses: actions/cache@v3
       with:
         path: ${{ env.CCACHE_DIR }}
-        key: ${{ matrix.platform }}-cache-${{ hashFiles('CMakeLists.txt') }}
-        restore-keys: |
-          ${{ matrix.platform }}-cache-
+        key: ${{ matrix.platform.os }}-cache-${{ hashFiles('CMakeLists.txt') }}
+        restore-keys: ${{ matrix.platform.os }}-cache-
+    - name: Deps
+      run: sh scripts/install_deps.sh
     - name: Build
       run: |
         export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
         mkdir build && cd build
-        cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ..
-        make -j4 ylem
+        cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache .. && make -j4 ylem
   release:
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
@@ -55,7 +50,7 @@ jobs:
         WITH_V: false
     - name: Release
       id: create_release
-      uses: actions/create-release@v1
+      uses: actions/create-release@latest
       env:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       with:
@@ -68,32 +63,54 @@ jobs:
     strategy:
       matrix:
         platform: [
-          {os: ubuntu-latest, path: linux-x86_64},
-	      {os: raspbian-private, path: linux-arm64},
-          {os: macos-latest, path: darwin-x86_64},
+          {os: ubuntu-latest, path: linux-x86_64, artifact: ylem},
+          {os: raspbian-private, path: linux-arm64, artifact: ylem},
+          {os: macos-latest, path: darwin-x86_64, artifact: ylem},
+          {os: windows-latest, path: windows-x86_64, artifact: ylem.exe},
         ]
     runs-on: ${{matrix.platform.os}}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Deps
-      run: sh scripts/install_deps.sh
     - name: Ccache
       uses: actions/cache@v3
       with:
         path: ${{ env.CCACHE_DIR }}
-        key: ${{ matrix.platform }}-cache-${{ hashFiles('CMakeLists.txt') }}
-        restore-keys: |
-          ${{ matrix.platform }}-cache-
-    - name: Build
+        key: ${{ matrix.platform.os }}-cache-${{ hashFiles('CMakeLists.txt') }}
+        restore-keys: ${{ matrix.platform.os }}-cache-
+    - name: Enable NMake
+      if: ${{ matrix.platform.os == 'windows-latest' }}
+      uses: ilammy/msvc-dev-cmd@v1
+    - name: Deps
+      if: ${{ matrix.platform.os != 'windows-latest' }}
+      run: sh scripts/install_deps.sh
+    - name: Deps
+      if: ${{ matrix.platform.os == 'windows-latest' }}
       run: |
-        export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
+        choco install ccache wget
+        wget https://boostorg.jfrog.io/artifactory/main/release/1.83.0/source/boost_1_83_0.tar.gz -O boost.tar.gz
+        tar xf boost.tar.gz
+        mkdir -p ${{ env.BOOST_ROOT }}
+        cd boost_1_83_0
+        .\bootstrap.bat
+        .\b2 -j4 -d0 link=static runtime-link=static variant=release threading=multi address-model=64 --with-filesystem --with-system --with-program_options --with-test --prefix=${{ env.BOOST_ROOT }} install
+    - name: Build
+      if: ${{ matrix.platform.os == 'windows-latest' }}
+      run: |
         echo -n "" >prerelease.txt
         mkdir build && cd build
-        cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DPROJECT_VERSION=${{needs.release.outputs.tag}} ..
+        cmake .. -G "NMake Makefiles" -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DPROJECT_VERSION="${{needs.release.outputs.tag}}" -DBoost_INCLUDE_DIR=${{env.BOOST_ROOT}}\include -DBoost_LIBRARY_DIRS=${{env.BOOST_ROOT}}\lib -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
+        nmake ylem
+    - name: Build
+      if: ${{ matrix.platform.os != 'windows-latest' }}
+      run: |
+        export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:/opt/local/libexec/ccache:/opt/local/bin:/opt/local/sbin:$PATH"
+        echo -n "" >prerelease.txt
+        mkdir build && cd build
+        cmake .. -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DPROJECT_VERSION=${{needs.release.outputs.tag}}
         make -j4 ylem
     - name: Checksum
-      run: cd build/solc && sha256sum ylem > ylem.checksum
+      run: cd build/solc && sha256sum ${{ matrix.platform.artifact }} > ylem.checksum
     - name: Upload checksum
       uses: actions/upload-release-asset@v1
       env:
@@ -109,6 +126,6 @@ jobs:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       with:
         upload_url: ${{needs.release.outputs.url}}
-        asset_path: ./build/solc/ylem
+        asset_path: ./build/solc/${{ matrix.platform.artifact }}
         asset_name: ylem-${{matrix.platform.path}}
         asset_content_type: application/zip
