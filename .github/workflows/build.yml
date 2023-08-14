@@ -5,6 +5,7 @@ env:
   CCACHE_DIR: ${{ github.workspace }}/.ccache
   CCACHE_COMPRESS: true
   CCACHE_COMPRESSLEVEL: 6
+  BOOST_ROOT: C:\boost
 jobs:
   build:
     strategy:
@@ -86,14 +87,20 @@ jobs:
     - name: Deps
       if: ${{ matrix.platform.os == 'windows-latest' }}
       run: |
-        choco install ccache
-        vcpkg install boost-filesystem:x64-windows-static boost-program-options:x64-windows-static boost-system:x64-windows-static boost-test:x64-windows-static
+        choco install ccache wget
+        wget https://boostorg.jfrog.io/artifactory/main/release/1.83.0/source/boost_1_83_0.tar.gz -O boost.tar.gz
+        tar xf boost.tar.gz
+        mkdir -p ${{ env.BOOST_ROOT }}
+        cd boost_1_83_0
+        .\bootstrap.bat
+        .\b2 -j4 -d0 link=static runtime-link=static variant=release threading=multi address-model=64 --with-filesystem --with-system --with-program_options --with-test --prefix=${{ env.BOOST_ROOT }} install
     - name: Build
       if: ${{ matrix.platform.os == 'windows-latest' }}
       run: |
+        dir ${{env.BOOST_DIR}}
         echo -n "" >prerelease.txt
         mkdir build && cd build
-        cmake .. -G "NMake Makefiles" -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DPROJECT_VERSION=${{needs.release.outputs.tag}}
+        cmake .. -G "NMake Makefiles" -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DPROJECT_VERSION=${{needs.release.outputs.tag}} -DBoost_INCLUDE_DIR=${{env.BOOST_ROOT}}\include -DBoost_LIBRARY_DIRS=${{env.BOOST_ROOT}}\lib
         nmake ylem
     - name: Build
       if: ${{ matrix.platform.os != 'windows-latest' }}
