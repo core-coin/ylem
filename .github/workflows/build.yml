@@ -87,7 +87,7 @@ jobs:
       if: ${{ matrix.platform.os == 'windows-latest' }}
       run: |
         choco install ccache
-        vcpkg install boost:x64-windows-static
+        vcpkg install boost-filesystem:x64-windows-static boost-program-options:x64-windows-static boost-system:x64-windows-static boost-test:x64-windows-static
     - name: Build
       if: ${{ matrix.platform.os == 'windows-latest' }}
       run: |
