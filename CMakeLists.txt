@@ -18,7 +18,7 @@ eth_policy()
 
 # project name and version should be set after cmake_policy CMP0048
 if(NOT DEFINED PROJECT_VERSION)
-	set(PROJECT_VERSION "1.0.0")
+	set(PROJECT_VERSION "1.1.1")
 else()
 	set(PROJECT_VERSION)
 endif()
