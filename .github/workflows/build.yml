@@ -66,6 +66,7 @@ jobs:
           {os: ubuntu-latest, path: linux-x86_64, artifact: ylem},
           {os: raspbian-private, path: linux-arm64, artifact: ylem},
           {os: macos-private, path: darwin-arm64, artifact: ylem},
+          {os: macos-latest, path: darwin-x86_64, artifact: ylem},
           {os: windows-latest, path: windows-x86_64, artifact: ylem.exe},
         ]
     runs-on: ${{matrix.platform.os}}
