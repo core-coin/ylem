@@ -226,7 +226,7 @@ void CompilerUtils::storeInMemoryDynamic(Type const& _type, bool _padToWordBound
 	{
 		combineExternalFunctionType(true);
 		m_context << Instruction::DUP2 << Instruction::MSTORE;
-		m_context << u256(_padToWordBoundaries ? 32 : 24) << Instruction::ADD;
+		m_context << u256(_type.calldataEncodedSize(_padToWordBoundaries)) << Instruction::ADD;
 	}
 	else if (_type.isValueType())
 	{
@@ -714,10 +714,10 @@ void CompilerUtils::splitExternalFunctionType(bool _leftAligned)
 	if (_leftAligned)
 	{
 		m_context << Instruction::DUP1;
-		rightShiftNumberOnStack(64 + 32);
+		rightShiftNumberOnStack(48 + 32);
 		// <input> <address>
 		m_context << Instruction::SWAP1;
-		rightShiftNumberOnStack(64);
+		rightShiftNumberOnStack(48);
 	}
 	else
 	{
@@ -737,7 +737,7 @@ void CompilerUtils::combineExternalFunctionType(bool _leftAligned)
 	leftShiftNumberOnStack(32);
 	m_context << Instruction::OR;
 	if (_leftAligned)
-		leftShiftNumberOnStack(64);
+		leftShiftNumberOnStack(48);
 }
 
 void CompilerUtils::pushCombinedFunctionEntryLabel(Declaration const& _function, bool _runtimeOnly)
