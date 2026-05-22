@@ -227,12 +227,10 @@ private:
 			{"ecrecover", std::make_shared<smtutil::ArraySort>(
 				std::make_shared<smtutil::TupleSort>(
 					"ecrecover_input_type",
-					std::vector<std::string>{"hash", "v", "r", "s"},
+					std::vector<std::string>{"hash", "signature"},
 					std::vector<smtutil::SortPointer>{
 						smt::smtSort(*TypeProvider::fixedBytes(32)),
-						smt::smtSort(*TypeProvider::uint(8)),
-						smt::smtSort(*TypeProvider::fixedBytes(32)),
-						smt::smtSort(*TypeProvider::fixedBytes(32))
+						smt::smtSort(*TypeProvider::bytesStorage())
 					}
 				),
 				smtSort(*TypeProvider::address())

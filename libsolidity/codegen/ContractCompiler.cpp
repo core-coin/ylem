@@ -231,9 +231,9 @@ size_t ContractCompiler::deployLibrary(ContractDefinition const& _contract)
 	m_context.appendInlineAssembly(
 		Whiskers(R"(
 		{
-			// If code starts at 11, an mstore(0) writes to the full PUSH20 plus data
+			// If code starts at 9, an mstore(0) writes to the full PUSH22 plus data
 			// without the need for a shift.
-			let codepos := 11
+			let codepos := 9
 			codecopy(codepos, subOffset, subSize)
 			// Check that the first opcode is a PUSH22
 			if iszero(eq(0x75, byte(0, mload(codepos)))) {
@@ -306,7 +306,7 @@ void ContractCompiler::appendConstructor(FunctionDefinition const& _constructor)
 void ContractCompiler::appendDelegatecallCheck()
 {
 	// Special constant that will be replaced by the address at deploy time.
-	// At compilation time, this is just "PUSH20 00...000".
+	// At compilation time, this is just "PUSH22 00...000".
 	m_context.appendDeployTimeAddress();
 	m_context << Instruction::ADDRESS << Instruction::EQ;
 	// The result on the stack is
